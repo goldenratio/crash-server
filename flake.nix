@@ -57,6 +57,20 @@
             ./generate-schema.sh
             '';
           };
+
+        dockerImage =
+          let
+            port = "8090";
+          in
+          pkgs.dockerTools.buildLayeredImage {
+            name = "crash-server-docker";
+            config = {
+              Cmd = ["echo \"hi\""];
+              ExposedPorts = {
+                "${port}/tcp" = { };
+              };
+            };
+          };
       });
 
       # Development environment output
