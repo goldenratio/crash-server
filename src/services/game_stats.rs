@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicUsize, Arc, Mutex};
+use std::sync::{atomic::AtomicUsize, Arc};
 
 #[derive(Debug)]
 pub struct GameStats {

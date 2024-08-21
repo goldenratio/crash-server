@@ -35,6 +35,28 @@
       });
     in
     {
+      # Build
+      packages = forAllSystems ({ pkgs }: {
+        default =
+          let
+            rustPlatform = pkgs.makeRustPlatform {
+              cargo = pkgs.rustToolchain;
+              rustc = pkgs.rustToolchain;
+            };
+          in
+          rustPlatform.buildRustPackage {
+            name = "crash-server";
+            src = ./.;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+          };
+
+        # shellHook = ''
+        # ./generate-schema.sh
+        # '';
+      });
+
       # Development environment output
       devShells = forAllSystems ({ pkgs }: {
         default = pkgs.mkShell {
@@ -49,6 +71,7 @@
           shellHook = ''
           echo "Hello shell!"
           export RUST_LOG=debug
+          ./generate-schema.sh
           '';
         };
       });

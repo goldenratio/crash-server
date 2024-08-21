@@ -3,6 +3,13 @@ name = "crash-server"
 version = "0.1.0"
 edition = "2021"
 
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+strip = true
+
 [dependencies]
 actix = "0.13.3"
 actix-web = "4"

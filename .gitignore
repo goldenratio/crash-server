@@ -1,1 +1,5 @@
-/target
+target/
+result/
+src/generated/*.rs
+!src/generated/mod.rs
+!src/generated/README.md

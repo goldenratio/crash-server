@@ -1,5 +1,6 @@
 mod routes;
 mod services;
+mod generated;
 
 use actix::Actor;
 use actix_web::{middleware, web, App, HttpServer};
