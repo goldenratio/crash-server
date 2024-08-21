@@ -50,11 +50,13 @@
             cargoLock = {
               lockFile = ./Cargo.lock;
             };
+            nativeBuildInputs = [
+              pkgs.flatbuffers
+            ];
+            preBuild = ''
+            ./generate-schema.sh
+            '';
           };
-
-        shellHook = ''
-        ./generate-schema.sh
-        '';
       });
 
       # Development environment output

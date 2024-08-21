@@ -13,7 +13,7 @@ use services::{game_server::GameServer, game_stats::GameStats};
 async fn main() -> std::io::Result<()> {
     env_logger::init();
 
-    info!("{:?}", get_num());
+    info!("answer to everything! {:?}", get_num());
 
     let port = 8090;
     let game_stats = web::Data::new(GameStats::new());
