@@ -1,9 +1,10 @@
 use actix::Addr;
-use actix_web::{web, Error, HttpRequest, HttpResponse};
+use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 
 use crate::services::{game_server::GameServer, peer::Peer};
 
+#[get("/game")]
 pub async fn create_ws(
     req: HttpRequest,
     stream: web::Payload,

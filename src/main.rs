@@ -21,8 +21,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .app_data(web::Data::new(game_server.clone()))
             .app_data(game_stats.clone())
-            .route("/stats", web::get().to(get_stats))
-            .route("/ws", web::get().to(create_ws))
+            .service(web::scope("/api").service(get_stats))
+            .service(web::scope("/ws").service(create_ws))
     })
     .bind(("127.0.0.1", port))?
     .run()
