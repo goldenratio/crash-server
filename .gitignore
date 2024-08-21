@@ -1,5 +1,8 @@
+.DS_Store
+.idea
+.vscode
+result
 target/
-result/
 src/generated/*.rs
 !src/generated/mod.rs
 !src/generated/README.md

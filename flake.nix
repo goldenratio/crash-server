@@ -52,9 +52,9 @@
             };
           };
 
-        # shellHook = ''
-        # ./generate-schema.sh
-        # '';
+        shellHook = ''
+        ./generate-schema.sh
+        '';
       });
 
       # Development environment output
