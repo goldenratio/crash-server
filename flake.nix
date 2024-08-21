@@ -50,8 +50,8 @@
             cargoLock = {
               lockFile = ./Cargo.lock;
             };
-            nativeBuildInputs = [
-              pkgs.flatbuffers
+            nativeBuildInputs = with pkgs; [
+              flatbuffers
             ];
             preBuild = ''
             ./generate-schema.sh
@@ -67,7 +67,7 @@
             # The package provided by our custom overlay. Includes cargo, Clippy, cargo-fmt,
             # rustdoc, rustfmt, and other tools.
             rustToolchain
-            pkgs.flatbuffers
+            flatbuffers
           ]) ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [ libiconv ]);
 
           shellHook = ''
