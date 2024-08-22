@@ -54,9 +54,6 @@
             nativeBuildInputs = with pkgs; [
               flatbuffers
             ];
-            preBuild = ''
-            ./generate-schema.sh
-            '';
           };
 
         dockerImage =
@@ -94,7 +91,6 @@
           shellHook = ''
           echo "Hello shell!"
           export RUST_LOG=debug
-          ./generate-schema.sh
           '';
         };
       });
