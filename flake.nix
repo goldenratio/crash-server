@@ -54,6 +54,9 @@
             nativeBuildInputs = with pkgs; [
               flatbuffers
             ];
+            preBuild = ''
+            echo "pre build script goes here!"
+            '';
           };
 
         dockerImage =
