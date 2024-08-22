@@ -63,13 +63,15 @@
           let
             crash_server_pkg = self.packages.${system}.crash-server;
           in
-          pkgs.dockerTools.buildLayeredImage {
+          pkgs.dockerTools.buildImage {
             name = "crash-server";
-            contents = [ crash_server_pkg ];
+            tag = "latest";
+            copyToRoot = [ crash_server_pkg ];
             config = {
               Cmd = ["${crash_server_pkg}/bin/crash-server"];
               Env = [
                 "ENV=PRODUCTION"
+                "RUST_LOG=DEBUG"
               ];
               ExposedPorts = {
                 "8090/tcp" = {};
