@@ -32,12 +32,13 @@
       # Helper to provide system-specific attributes
       forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
         pkgs = import nixpkgs { inherit overlays system; };
+        system = system;
       });
     in
     {
       # Build
-      packages = forAllSystems ({ pkgs }: {
-        default =
+      packages = forAllSystems ({ pkgs, system }: {
+        crash-server =
           let
             rustPlatform = pkgs.makeRustPlatform {
               cargo = pkgs.rustToolchain;
@@ -60,21 +61,25 @@
 
         dockerImage =
           let
-            port = "8090";
+            crash_server_pkg = self.packages.${system}.crash-server;
           in
           pkgs.dockerTools.buildLayeredImage {
-            name = "crash-server-docker";
+            name = "crash-server";
+            contents = [ crash_server_pkg ];
             config = {
-              Cmd = ["echo \"hi\""];
+              Cmd = ["${crash_server_pkg}/bin/crash-server"];
+              Env = [
+                "ENV=PRODUCTION"
+              ];
               ExposedPorts = {
-                "${port}/tcp" = { };
+                "8090/tcp" = {};
               };
             };
           };
       });
 
       # Development environment output
-      devShells = forAllSystems ({ pkgs }: {
+      devShells = forAllSystems ({ pkgs, system }: {
         default = pkgs.mkShell {
           # The Nix packages provided in the environment
           packages = (with pkgs; [
@@ -91,5 +96,8 @@
           '';
         };
       });
+
+      # default build
+      defaultPackage = forAllSystems ({ pkgs, system }: self.packages.${system}.crash-server);
     };
 }
