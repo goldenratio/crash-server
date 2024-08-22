@@ -1,12 +1,17 @@
+mod generated;
 mod routes;
 mod services;
-mod generated;
 
 use actix::Actor;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{error, middleware, web, App, HttpResponse, HttpServer};
 use generated::hello::get_num;
 use log::info;
-use routes::{create_ws::create_ws, stats::get_stats};
+use routes::{
+    auth::auth_login,
+    create_ws::create_ws,
+    stats::get_stats,
+    utils::error_response::{AppError, AppErrorResponse},
+};
 use services::{game_server::GameServer, game_stats::GameStats};
 
 #[actix_web::main]
@@ -25,7 +30,19 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .app_data(web::Data::new(game_server.clone()))
             .app_data(game_stats.clone())
-            .service(web::scope("/api").service(get_stats))
+            .app_data(
+                web::JsonConfig::default()
+                    .limit(1024)
+                    .error_handler(|err, _req| {
+                        return error::InternalError::from_response(
+                            err,
+                            HttpResponse::BadRequest()
+                                .json(AppErrorResponse::from(AppError::InvalidRequestPayload)),
+                        )
+                        .into();
+                    }),
+            )
+            .service(web::scope("/api").service(get_stats).service(auth_login))
             .service(web::scope("/ws").service(create_ws))
     })
     .bind(("127.0.0.1", port))?

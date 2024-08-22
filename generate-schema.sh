@@ -2,7 +2,7 @@ echo "generate schema!"
 if ! command -v flatc &> /dev/null
 then
     echo "flatc could not be found!"
-    exit 1
+    exit 0
 fi
 
 flatc --version
