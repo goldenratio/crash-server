@@ -1,13 +1,17 @@
 use actix_web::{http::StatusCode, post, web, HttpResponse, Responder, ResponseError};
 use derive_more::Display;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::{routes::utils::user_claims::UserClaims, services::env_settings::EnvSettings};
 
 use super::utils::error_response::AppErrorResponse;
 
 #[derive(Serialize, Debug, Display)]
 pub enum LoginError {
-    InvalidEmailOrPassword = 10011,
+    GenericError = 10011,
+    InvalidEmailOrPassword,
 }
 
 #[derive(Deserialize, Debug)]
@@ -35,6 +39,7 @@ struct LoginSuccessResponse {
 impl ResponseError for LoginError {
     fn status_code(&self) -> StatusCode {
         match self {
+            LoginError::GenericError => StatusCode::INTERNAL_SERVER_ERROR,
             LoginError::InvalidEmailOrPassword => StatusCode::BAD_REQUEST,
         }
     }
@@ -43,6 +48,9 @@ impl ResponseError for LoginError {
         let status = self.status_code();
 
         match self {
+            LoginError::GenericError => {
+                HttpResponse::build(status).json(AppErrorResponse::from(LoginError::GenericError))
+            }
             LoginError::InvalidEmailOrPassword => HttpResponse::build(status)
                 .json(AppErrorResponse::from(LoginError::InvalidEmailOrPassword)),
         }
@@ -50,18 +58,30 @@ impl ResponseError for LoginError {
 }
 
 #[post("/login")]
-async fn auth_login(param_obj: web::Json<LoginRequestData>) -> Result<impl Responder, LoginError> {
+async fn auth_login(
+    param_obj: web::Json<LoginRequestData>,
+    env_settings: web::Data<EnvSettings>,
+) -> Result<impl Responder, LoginError> {
     let payload = param_obj.into_inner();
-    log::trace!("/auth {:?}", payload);
+    log::info!("/auth {:?}", payload);
 
     let uuid = Uuid::new_v4();
     let uuid_str = uuid.to_string();
 
+    let claims = UserClaims::new(env_settings.user_jwt_expiration_minutes, uuid_str.clone());
+
+    let jwt_token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(env_settings.user_jwt_secret.as_ref()),
+    )
+    .map_err(|_| LoginError::GenericError)?;
+
     let response_data = LoginSuccessResponse {
-        jwt_token: "2121".to_string(),
+        jwt_token,
         uuid: uuid_str,
         display_name: "foo".to_string(),
     };
 
-    return Ok(web::Json(response_data));
+    Ok(web::Json(response_data))
 }

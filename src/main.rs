@@ -2,6 +2,7 @@ mod generated;
 mod routes;
 mod services;
 
+use dotenv::dotenv;
 use actix::Actor;
 use actix_web::{error, middleware, web, App, HttpResponse, HttpServer};
 use generated::hello::get_num;
@@ -12,13 +13,15 @@ use routes::{
     stats::get_stats,
     utils::error_response::{AppError, AppErrorResponse},
 };
-use services::{game_server::GameServer, game_stats::GameStats};
+use services::{env_settings::EnvSettings, game_server::GameServer, game_stats::GameStats};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
+    dotenv().ok();
 
     info!("answer to everything! {:?}", get_num());
+    let env_settings = EnvSettings::new();
 
     let port = 8090;
     let game_stats = web::Data::new(GameStats::new());
@@ -28,6 +31,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
+            .app_data(web::Data::new(env_settings.clone()))
             .app_data(web::Data::new(game_server.clone()))
             .app_data(game_stats.clone())
             .app_data(

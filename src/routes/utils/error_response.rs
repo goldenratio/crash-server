@@ -31,6 +31,12 @@ impl From<AppError> for AppErrorResponse {
 impl From<LoginError> for AppErrorResponse {
     fn from(value: LoginError) -> AppErrorResponse {
         match value {
+            LoginError::GenericError => {
+                return AppErrorResponse {
+                    error_code: LoginError::GenericError as u16,
+                    error_message: "Generic login error".to_string(),
+                };
+            }
             LoginError::InvalidEmailOrPassword => {
                 return AppErrorResponse {
                     error_code: LoginError::InvalidEmailOrPassword as u16,
