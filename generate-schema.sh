@@ -8,5 +8,4 @@ then
 fi
 
 flatc --version
-touch src/generated/hello.rs
-echo "pub fn get_num() -> String { "42".to_string() }" > src/generated/hello.rs
+flatc --rust -o src/generated game_schema.fbs

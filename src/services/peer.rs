@@ -4,13 +4,29 @@ use actix::{
     fut, Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, ContextFutureSpawner, Handler,
     Running, StreamHandler, WrapFuture,
 };
-use actix_web_actors::ws;
+use actix_web::web;
+use actix_web_actors::ws::{self, CloseReason};
 use log::info;
 
+use crate::{
+    routes::utils::auth_token_extractor::UserAuthentication,
+    utils::flatbuffer_utils::parse_gameplay_data,
+};
+
 use super::{
+    env_settings::EnvSettings,
     game_server::GameServer,
     message_types::{Connect, Disconnect, PeerPlayerData},
 };
+
+#[derive(Debug)]
+pub enum ClientData {
+    Authenticate {
+        player_uuid: String,
+        jwt_token: String,
+    },
+    Unknown,
+}
 
 pub struct Peer {
     // unique session id
@@ -20,15 +36,18 @@ pub struct Peer {
 
     // game server actor address
     pub game_server_addr: Addr<GameServer>,
+
+    pub env_settings: web::Data<EnvSettings>,
 }
 
 impl Peer {
-    pub fn new(game_server_addr: Addr<GameServer>) -> Self {
+    pub fn new(game_server_addr: Addr<GameServer>, env_settings: web::Data<EnvSettings>) -> Self {
         Self {
             // id is re-assigned when connection is established
             id: 0,
             heart_beat: Instant::now(),
             game_server_addr,
+            env_settings,
         }
     }
 }
@@ -90,7 +109,38 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                 info!("received from client (text), {:?}", text);
             }
             ws::Message::Binary(bytes) => {
-                todo!()
+                info!("received from client (bytes) {:?}", bytes.len());
+                let gameplay_data = parse_gameplay_data(&bytes);
+                match gameplay_data {
+                    ClientData::Authenticate {
+                        jwt_token,
+                        player_uuid,
+                    } => {
+                        match UserAuthentication::validate_auth(
+                            &player_uuid,
+                            &jwt_token,
+                            &self.env_settings,
+                        ) {
+                            Ok(_) => {
+                                info!("token valid!");
+                            }
+                            Err(_) => {
+                                ctx.close(Option::from(CloseReason {
+                                    code: ws::CloseCode::Invalid,
+                                    description: Option::from(
+                                        "Invalid authentication token sent!".to_owned(),
+                                    ),
+                                }));
+                                ctx.stop();
+                            }
+                        };
+                        // self.game_server_addr.do_send(PeerPlayerPositionUpdate {
+                        //     player_position: player_position,
+                        //     player_id: self.id
+                        // });
+                    }
+                    ClientData::Unknown => {}
+                }
             }
             ws::Message::Ping(msg) => {
                 self.heart_beat = Instant::now();

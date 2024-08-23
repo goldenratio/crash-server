@@ -1,0 +1,53 @@
+namespace GameplayFBData;
+
+struct PlayerControl {
+  up: bool;
+  down: bool;
+  left: bool;
+  right: bool;
+}
+
+struct Vec2 {
+  x: float32;
+  y: float32;
+}
+
+struct PlayerData {
+  player_id: uint64;
+  player_position: Vec2;
+}
+
+table Authenticate {
+  player_uuid: string;
+  jwt_token: string;
+}
+
+union RequestMessages { Authenticate }
+
+table GameRequestEvent {
+  msg: RequestMessages;
+}
+
+table RemotePeerJoined {
+  player_data: PlayerData;
+}
+
+table RemotePeerLeft {
+  player_id: uint64;
+}
+
+table RemotePeerPositionUpdate {
+  player_data: PlayerData;
+}
+
+table GameWorldUpdate {
+    player_data_list: [PlayerData];
+}
+
+union ResponseMessage { RemotePeerJoined, RemotePeerLeft, RemotePeerPositionUpdate, GameWorldUpdate }
+
+table GameReponseEvent {
+  msg: ResponseMessage;
+}
+
+root_type GameRequestEvent;

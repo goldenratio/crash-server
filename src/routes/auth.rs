@@ -4,7 +4,10 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{routes::utils::user_claims::UserClaims, services::env_settings::EnvSettings};
+use crate::{
+    routes::utils::auth_token_extractor::{UserAuthentication, UserClaims},
+    services::env_settings::EnvSettings,
+};
 
 use super::utils::error_response::AppErrorResponse;
 
@@ -65,23 +68,19 @@ async fn auth_login(
     let payload = param_obj.into_inner();
     log::info!("/auth {:?}", payload);
 
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string();
+    match payload.play_mode {
+        PlayMode::FUN => {
+            let guest_auth = UserAuthentication::create_guest_auth(&env_settings)
+                .map_err(|_| LoginError::GenericError)?;
 
-    let claims = UserClaims::new(env_settings.user_jwt_expiration_minutes, uuid_str.clone());
+            let response_data = LoginSuccessResponse {
+                jwt_token: guest_auth.authentication_token,
+                uuid: guest_auth.uuid,
+                display_name: "foo".to_string(),
+            };
 
-    let jwt_token = encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(env_settings.user_jwt_secret.as_ref()),
-    )
-    .map_err(|_| LoginError::GenericError)?;
-
-    let response_data = LoginSuccessResponse {
-        jwt_token,
-        uuid: uuid_str,
-        display_name: "foo".to_string(),
-    };
-
-    Ok(web::Json(response_data))
+            Ok(web::Json(response_data))
+        }
+        PlayMode::REAL => Err(LoginError::GenericError),
+    }
 }

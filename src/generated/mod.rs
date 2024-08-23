@@ -1,1 +1,1 @@
-pub mod hello;
+pub mod game_schema_generated;

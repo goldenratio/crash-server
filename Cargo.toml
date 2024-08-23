@@ -13,6 +13,7 @@ strip = true
 
 [dependencies]
 actix = "0.13.3"
+actix-cors = "0.6.4"
 actix-web = "4"
 actix-web-actors = "4.3.0"
 chrono = "0.4.31"

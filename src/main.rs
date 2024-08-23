@@ -1,15 +1,16 @@
 mod generated;
 mod routes;
 mod services;
+mod utils;
 
-use dotenv::dotenv;
 use actix::Actor;
+use actix_cors::Cors;
 use actix_web::{error, middleware, web, App, HttpResponse, HttpServer};
-use generated::hello::get_num;
+use dotenv::dotenv;
 use log::info;
 use routes::{
     auth::auth_login,
-    create_ws::create_ws,
+    create_ws::create_crash_game,
     stats::get_stats,
     utils::error_response::{AppError, AppErrorResponse},
 };
@@ -20,7 +21,6 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     dotenv().ok();
 
-    info!("answer to everything! {:?}", get_num());
     let env_settings = EnvSettings::new();
 
     let port = 8090;
@@ -29,8 +29,15 @@ async fn main() -> std::io::Result<()> {
 
     info!("running server in port {:?}", 8090);
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_header()
+            .allow_any_method()
+            .send_wildcard();
+
         App::new()
             .wrap(middleware::Logger::default())
+            .wrap(cors)
             .app_data(web::Data::new(env_settings.clone()))
             .app_data(web::Data::new(game_server.clone()))
             .app_data(game_stats.clone())
@@ -47,7 +54,7 @@ async fn main() -> std::io::Result<()> {
                     }),
             )
             .service(web::scope("/api").service(get_stats).service(auth_login))
-            .service(web::scope("/ws").service(create_ws))
+            .service(web::scope("/ws").service(create_crash_game))
     })
     .bind(("127.0.0.1", port))?
     .run()

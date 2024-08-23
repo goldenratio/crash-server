@@ -1,6 +1,7 @@
 use actix::{Message, Recipient};
 
-/// New chat session is created
+// messages sent between peer and gameServer
+
 #[derive(Message)]
 #[rtype(usize)]
 pub struct Connect {
