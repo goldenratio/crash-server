@@ -76,7 +76,7 @@ async fn auth_login(
             let response_data = LoginSuccessResponse {
                 jwt_token: guest_auth.authentication_token,
                 uuid: guest_auth.uuid,
-                display_name: "foo".to_string(),
+                display_name: "".to_string(),
             };
 
             Ok(web::Json(response_data))

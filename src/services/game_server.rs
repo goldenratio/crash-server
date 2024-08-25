@@ -6,14 +6,14 @@ use log::info;
 use rand::{rngs::ThreadRng, Rng};
 
 use super::{
-    game_stats::GameStats,
-    message_types::{Connect, Disconnect},
+    crash_game::CrashGame, game_stats::GameStats, message_types::{Connect, Disconnect}
 };
 
 #[derive(Debug)]
 pub struct GameServer {
     rng: ThreadRng,
     game_stats: web::Data<GameStats>,
+    crash_game: CrashGame,
 }
 
 impl GameServer {
@@ -21,6 +21,7 @@ impl GameServer {
         Self {
             rng: rand::thread_rng(),
             game_stats,
+            crash_game: Default::default()
         }
     }
 }

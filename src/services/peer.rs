@@ -10,7 +10,7 @@ use log::info;
 
 use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
-    utils::flatbuffer_utils::parse_gameplay_data,
+    utils::flatbuffer_utils::{create_auth_response_success, parse_gameplay_data},
 };
 
 use super::{
@@ -122,7 +122,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                             &self.env_settings,
                         ) {
                             Ok(_) => {
-                                info!("token valid!");
+                                let success_data = create_auth_response_success();
+                                info!(
+                                    "token valid! sending response bytes of len {:?}",
+                                    &success_data.len()
+                                );
+                                ctx.binary(success_data);
                             }
                             Err(_) => {
                                 ctx.close(Option::from(CloseReason {
