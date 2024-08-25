@@ -5,17 +5,37 @@ table JoinGameRequest {
   jwt_token: string;
 }
 
-union RequestMessages { JoinGameRequest }
+table BetRequest {
+  bet_amount: uint32;
+}
+
+union RequestMessages { JoinGameRequest, BetRequest }
 
 table GameRequestEvent {
   msg: RequestMessages;
 }
 
-table JoinGameResponseSuccess {
+table JoinGameResponse {
   success: bool;
 }
 
-union ResponseMessage { JoinGameResponseSuccess }
+table BettingRoundStarted {
+  time_left: uint8;
+}
+
+table GameStarted {
+
+}
+
+table GameUpdate {
+  multiplier: uint16;
+}
+
+table GameFinished {
+  win_amount: uint32;
+}
+
+union ResponseMessage { JoinGameResponse, BettingRoundStarted, GameStarted, GameUpdate, GameFinished }
 
 table GameResponseEvent {
   msg: ResponseMessage;

@@ -21,9 +21,12 @@ use super::{
 
 #[derive(Debug)]
 pub enum ClientData {
-    Authenticate {
+    JoinGameRequest {
         player_uuid: String,
         jwt_token: String,
+    },
+    BetRequest {
+        bet_amount: u32,
     },
     Unknown,
 }
@@ -111,8 +114,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
             ws::Message::Binary(bytes) => {
                 info!("received from client (bytes) {:?}", bytes.len());
                 let gameplay_data = parse_gameplay_data(&bytes);
+                info!("gameplay_data: {:?}", &gameplay_data);
                 match gameplay_data {
-                    ClientData::Authenticate {
+                    ClientData::JoinGameRequest {
                         jwt_token,
                         player_uuid,
                     } => {
@@ -143,6 +147,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                         //     player_position: player_position,
                         //     player_id: self.id
                         // });
+                    }
+                    ClientData::BetRequest { bet_amount } => {
+                        info!("bet request {:?}", bet_amount);
                     }
                     ClientData::Unknown => {}
                 }

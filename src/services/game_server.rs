@@ -6,7 +6,9 @@ use log::info;
 use rand::{rngs::ThreadRng, Rng};
 
 use super::{
-    crash_game::CrashGame, game_stats::GameStats, message_types::{Connect, Disconnect}
+    crash_game::CrashGame,
+    game_stats::GameStats,
+    message_types::{Connect, Disconnect},
 };
 
 #[derive(Debug)]
@@ -21,7 +23,7 @@ impl GameServer {
         Self {
             rng: rand::thread_rng(),
             game_stats,
-            crash_game: Default::default()
+            crash_game: Default::default(),
         }
     }
 }

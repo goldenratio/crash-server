@@ -2,8 +2,7 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, GameResponseEvent, GameResponseEventArgs,
-        JoinGameResponseSuccess, JoinGameResponseSuccessArgs, RequestMessages, ResponseMessage,
+        root_as_game_request_event, GameResponseEvent, GameResponseEventArgs, JoinGameResponse, JoinGameResponseArgs, RequestMessages, ResponseMessage
     },
     services::peer::ClientData,
 };
@@ -12,17 +11,29 @@ pub fn parse_gameplay_data(buf: &[u8]) -> ClientData {
     let gameplay = root_as_game_request_event(buf).unwrap();
     let event_type = gameplay.msg_type();
 
-    if event_type == RequestMessages::JoinGameRequest {
-        if let Some(auth_data) = gameplay.msg_as_join_game_request() {
-            let player_uuid = auth_data.player_uuid().unwrap_or_else(|| "");
-            let jwt_token = auth_data.jwt_token().unwrap_or_else(|| "");
+    match event_type {
+        RequestMessages::JoinGameRequest => {
+            if let Some(auth_data) = gameplay.msg_as_join_game_request() {
+                let player_uuid = auth_data.player_uuid().unwrap_or_else(|| "");
+                let jwt_token = auth_data.jwt_token().unwrap_or_else(|| "");
 
-            ClientData::Authenticate {
-                jwt_token: jwt_token.to_string(),
-                player_uuid: player_uuid.to_string(),
-            };
+                return ClientData::JoinGameRequest {
+                    jwt_token: jwt_token.to_string(),
+                    player_uuid: player_uuid.to_string(),
+                };
+            }
+        }
+        RequestMessages::BetRequest => {
+            if let Some(bet_data) = gameplay.msg_as_bet_request() {
+                let bet_amount = bet_data.bet_amount();
+                return ClientData::BetRequest { bet_amount };
+            }
+        }
+        _ => {
+            return ClientData::Unknown;
         }
     }
+
     ClientData::Unknown
 }
 
@@ -41,11 +52,11 @@ pub fn create_auth_response_success() -> Vec<u8> {
     // ergonomically.)
 
     let msg =
-        JoinGameResponseSuccess::create(&mut bldr, &JoinGameResponseSuccessArgs { success: true })
+        JoinGameResponse::create(&mut bldr, &JoinGameResponseArgs { success: true })
             .as_union_value();
 
     let args = GameResponseEventArgs {
-        msg_type: ResponseMessage::JoinGameResponseSuccess,
+        msg_type: ResponseMessage::JoinGameResponse,
         msg: Option::from(msg),
     };
 
