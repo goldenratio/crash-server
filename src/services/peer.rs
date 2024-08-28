@@ -10,6 +10,7 @@ use log::info;
 
 use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
+    services::message_types::PlayerJoined,
     utils::flatbuffer_utils::{create_auth_response_success, parse_gameplay_data},
 };
 
@@ -33,7 +34,7 @@ pub enum ClientData {
 
 pub struct Peer {
     // unique session id
-    pub id: usize,
+    pub session_id: usize,
 
     pub heart_beat: Instant,
 
@@ -46,8 +47,8 @@ pub struct Peer {
 impl Peer {
     pub fn new(game_server_addr: Addr<GameServer>, env_settings: web::Data<EnvSettings>) -> Self {
         Self {
-            // id is re-assigned when connection is established
-            id: 0,
+            // session_id is re-assigned when connection is established
+            session_id: 0,
             heart_beat: Instant::now(),
             game_server_addr,
             env_settings,
@@ -68,7 +69,7 @@ impl Actor for Peer {
             .then(|res, act, ctx| {
                 match res {
                     Ok(res) => {
-                        act.id = res;
+                        act.session_id = res;
                     }
                     // something is wrong with chat server
                     _ => ctx.stop(),
@@ -76,7 +77,7 @@ impl Actor for Peer {
                 fut::ready(())
             })
             .then(|_, act, _| {
-                info!("peer actor connected! id: {:?}", act.id);
+                info!("peer actor connected! session_id: {:?}", act.session_id);
                 fut::ready(())
             })
             .wait(ctx);
@@ -84,7 +85,9 @@ impl Actor for Peer {
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
         // notify game server
-        self.game_server_addr.do_send(Disconnect { id: self.id });
+        self.game_server_addr.do_send(Disconnect {
+            session_id: self.session_id,
+        });
         Running::Stop
     }
 }
@@ -120,6 +123,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                         jwt_token,
                         player_uuid,
                     } => {
+                        // todo: check for already logged in
                         match UserAuthentication::validate_auth(
                             &player_uuid,
                             &jwt_token,
@@ -132,6 +136,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                                     &success_data.len()
                                 );
                                 ctx.binary(success_data);
+                                let peer_addr = ctx.address();
+                                self.game_server_addr.do_send(PlayerJoined {
+                                    session_id: self.session_id,
+                                    uuid: player_uuid.clone(),
+                                    peer_addr: peer_addr.recipient(),
+                                });
                             }
                             Err(_) => {
                                 ctx.close(Option::from(CloseReason {
@@ -143,10 +153,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                                 ctx.stop();
                             }
                         };
-                        // self.game_server_addr.do_send(PeerPlayerPositionUpdate {
-                        //     player_position: player_position,
-                        //     player_id: self.id
-                        // });
                     }
                     ClientData::BetRequest { bet_amount } => {
                         info!("bet request {:?}", bet_amount);

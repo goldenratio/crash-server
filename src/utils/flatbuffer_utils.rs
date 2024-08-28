@@ -2,7 +2,8 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, GameResponseEvent, GameResponseEventArgs, JoinGameResponse, JoinGameResponseArgs, RequestMessages, ResponseMessage
+        root_as_game_request_event, GameResponseEvent, GameResponseEventArgs, JoinGameResponse,
+        JoinGameResponseArgs, RequestMessages, ResponseMessage,
     },
     services::peer::ClientData,
 };
@@ -51,9 +52,8 @@ pub fn create_auth_response_success() -> Vec<u8> {
     // (Note how we call `bldr.create_string` to create the UTF-8 string
     // ergonomically.)
 
-    let msg =
-        JoinGameResponse::create(&mut bldr, &JoinGameResponseArgs { success: true })
-            .as_union_value();
+    let msg = JoinGameResponse::create(&mut bldr, &JoinGameResponseArgs { success: true })
+        .as_union_value();
 
     let args = GameResponseEventArgs {
         msg_type: ResponseMessage::JoinGameResponse,

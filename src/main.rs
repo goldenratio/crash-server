@@ -29,15 +29,10 @@ async fn main() -> std::io::Result<()> {
 
     info!("running server in port {:?}", 8090);
     HttpServer::new(move || {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_header()
-            .allow_any_method()
-            .send_wildcard();
-
         App::new()
             .wrap(middleware::Logger::default())
-            .wrap(cors)
+            // todo: during development, use feature config
+            .wrap(Cors::permissive())
             .app_data(web::Data::new(env_settings.clone()))
             .app_data(web::Data::new(game_server.clone()))
             .app_data(game_stats.clone())
@@ -57,6 +52,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::scope("/ws").service(create_crash_game))
     })
     .bind(("127.0.0.1", port))?
+    .workers(2)
     .run()
     .await
 }

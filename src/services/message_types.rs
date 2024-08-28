@@ -12,7 +12,15 @@ pub struct Connect {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
-    pub id: usize,
+    pub session_id: usize,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct PlayerJoined {
+    pub session_id: usize,
+    pub uuid: String,
+    pub peer_addr: Recipient<PeerPlayerData>,
 }
 
 #[derive(Message, Debug, Clone)]

@@ -81,6 +81,7 @@ async fn auth_login(
 
             Ok(web::Json(response_data))
         }
+        // todo: real mode
         PlayMode::REAL => Err(LoginError::GenericError),
     }
 }
