@@ -9,7 +9,9 @@ table BetRequest {
   bet_amount: uint32;
 }
 
-union RequestMessages { JoinGameRequest, BetRequest }
+table CrashOut {}
+
+union RequestMessages { JoinGameRequest, BetRequest, CrashOut }
 
 table GameRequestEvent {
   msg: RequestMessages;

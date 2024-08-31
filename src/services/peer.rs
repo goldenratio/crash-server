@@ -10,7 +10,7 @@ use log::info;
 
 use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
-    services::message_types::PlayerJoined,
+    services::message_types::{BetRequest, PlayerJoined},
     utils::flatbuffer_utils::{create_auth_response_success, parse_gameplay_data},
 };
 
@@ -27,8 +27,10 @@ pub enum ClientData {
         jwt_token: String,
     },
     BetRequest {
+        /// in cents
         bet_amount: u32,
     },
+    CrashOut {},
     Unknown,
 }
 
@@ -155,7 +157,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                         };
                     }
                     ClientData::BetRequest { bet_amount } => {
-                        info!("bet request {:?}", bet_amount);
+                        info!("bet request {:?} {:?}", bet_amount, self.session_id);
+                        self.game_server_addr.do_send(BetRequest {
+                            session_id: self.session_id,
+                            bet_amount: bet_amount
+                        });
+                    }
+                    ClientData::CrashOut {  } => {
+                        info!("crash out {:?}", self.session_id);
                     }
                     ClientData::Unknown => {}
                 }

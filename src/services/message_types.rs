@@ -15,12 +15,25 @@ pub struct Disconnect {
     pub session_id: usize,
 }
 
-#[derive(Message)]
+#[derive(Message, Clone)]
 #[rtype(result = "()")]
 pub struct PlayerJoined {
     pub session_id: usize,
     pub uuid: String,
     pub peer_addr: Recipient<PeerPlayerData>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct BetRequest {
+    pub session_id: usize,
+    pub bet_amount: u32,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct CrashOutRequest {
+    pub session_id: usize
 }
 
 #[derive(Message, Debug, Clone)]
