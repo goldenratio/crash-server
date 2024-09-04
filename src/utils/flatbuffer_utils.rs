@@ -2,8 +2,9 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, GameResponseEvent, GameResponseEventArgs, JoinGameResponse,
-        JoinGameResponseArgs, RequestMessages, ResponseMessage,
+        root_as_game_request_event, BettingTimerUpdate, BettingTimerUpdateArgs, GameResponseEvent,
+        GameResponseEventArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs,
+        RequestMessages, ResponseMessage,
     },
     services::peer::ClientData,
 };
@@ -30,6 +31,9 @@ pub fn parse_gameplay_data(buf: &[u8]) -> ClientData {
                 return ClientData::BetRequest { bet_amount };
             }
         }
+        RequestMessages::CrashOut => {
+            return ClientData::CrashOut {};
+        }
         _ => {
             return ClientData::Unknown;
         }
@@ -38,7 +42,12 @@ pub fn parse_gameplay_data(buf: &[u8]) -> ClientData {
     ClientData::Unknown
 }
 
-pub fn create_auth_response_success() -> Vec<u8> {
+pub fn create_join_game_response_success(
+    game_state: u8,
+    betting_time_left: u32,
+    multiplier: u32,
+    round_time_elapsed_ms: u32,
+) -> Vec<u8> {
     let mut bldr = FlatBufferBuilder::new();
     let mut bytes: Vec<u8> = Vec::new();
 
@@ -52,8 +61,16 @@ pub fn create_auth_response_success() -> Vec<u8> {
     // (Note how we call `bldr.create_string` to create the UTF-8 string
     // ergonomically.)
 
-    let msg = JoinGameResponse::create(&mut bldr, &JoinGameResponseArgs { success: true })
-        .as_union_value();
+    let msg = JoinGameResponse::create(
+        &mut bldr,
+        &JoinGameResponseArgs {
+            game_state: game_state,
+            betting_time_left: betting_time_left,
+            multiplier: multiplier,
+            round_time_elapsed: round_time_elapsed_ms,
+        },
+    )
+    .as_union_value();
 
     let args = GameResponseEventArgs {
         msg_type: ResponseMessage::JoinGameResponse,
@@ -67,6 +84,66 @@ pub fn create_auth_response_success() -> Vec<u8> {
 
     // Finish the write operation by calling the generated function
     // `finish_user_buffer` with the `user_offset` created by `User::create`.
+    bldr.finish(user_offset, None);
+
+    // Copy the serialized FlatBuffers data to our own byte buffer.
+    let finished_data = bldr.finished_data();
+    bytes.extend_from_slice(finished_data);
+
+    bytes
+}
+
+pub fn create_game_update_response(multiplier: u32) -> Vec<u8> {
+    let mut bldr = FlatBufferBuilder::new();
+    let mut bytes: Vec<u8> = Vec::new();
+
+    bytes.clear();
+    bldr.reset();
+
+    let msg = GameUpdate::create(
+        &mut bldr,
+        &&GameUpdateArgs {
+            multiplier: multiplier,
+        },
+    )
+    .as_union_value();
+
+    let args = GameResponseEventArgs {
+        msg_type: ResponseMessage::GameUpdate,
+        msg: Option::from(msg),
+    };
+
+    let user_offset = GameResponseEvent::create(&mut bldr, &args);
+    bldr.finish(user_offset, None);
+
+    // Copy the serialized FlatBuffers data to our own byte buffer.
+    let finished_data = bldr.finished_data();
+    bytes.extend_from_slice(finished_data);
+
+    bytes
+}
+
+pub fn create_betting_timer_update_response(betting_time_left: u32) -> Vec<u8> {
+    let mut bldr = FlatBufferBuilder::new();
+    let mut bytes: Vec<u8> = Vec::new();
+
+    bytes.clear();
+    bldr.reset();
+
+    let msg = BettingTimerUpdate::create(
+        &mut bldr,
+        &&BettingTimerUpdateArgs {
+            betting_time_left: betting_time_left,
+        },
+    )
+    .as_union_value();
+
+    let args = GameResponseEventArgs {
+        msg_type: ResponseMessage::BettingTimerUpdate,
+        msg: Option::from(msg),
+    };
+
+    let user_offset = GameResponseEvent::create(&mut bldr, &args);
     bldr.finish(user_offset, None);
 
     // Copy the serialized FlatBuffers data to our own byte buffer.

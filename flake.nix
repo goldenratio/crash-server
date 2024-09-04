@@ -94,6 +94,7 @@
           shellHook = ''
           echo "Hello shell!"
           export RUST_LOG=debug
+          export RUST_BACKTRACE=1
           '';
         };
       });

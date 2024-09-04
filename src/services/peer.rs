@@ -10,14 +10,17 @@ use log::info;
 
 use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
-    services::message_types::{BetRequest, PlayerJoined},
-    utils::flatbuffer_utils::{create_auth_response_success, parse_gameplay_data},
+    services::message_types::{BetRequest, CrashOutRequest, PlayerJoined},
+    utils::flatbuffer_utils::{
+        create_betting_timer_update_response, create_game_update_response,
+        create_join_game_response_success, parse_gameplay_data,
+    },
 };
 
 use super::{
     env_settings::EnvSettings,
     game_server::GameServer,
-    message_types::{Connect, Disconnect, PeerPlayerData},
+    message_types::{Connect, Disconnect, GameEvent},
 };
 
 #[derive(Debug)]
@@ -28,7 +31,7 @@ pub enum ClientData {
     },
     BetRequest {
         /// in cents
-        bet_amount: u32,
+        bet_amount: u64,
     },
     CrashOut {},
     Unknown,
@@ -94,11 +97,38 @@ impl Actor for Peer {
     }
 }
 
-impl Handler<PeerPlayerData> for Peer {
+impl Handler<GameEvent> for Peer {
     type Result = ();
 
-    fn handle(&mut self, msg: PeerPlayerData, ctx: &mut Self::Context) -> Self::Result {
-        todo!()
+    fn handle(&mut self, msg: GameEvent, ctx: &mut Self::Context) -> Self::Result {
+        match msg {
+            GameEvent::RemotePlayerJoined { display_name } => todo!(),
+            GameEvent::RemotePlayerLeft { display_name } => todo!(),
+            GameEvent::PlayerJoinedResponse {
+                game_state,
+                betting_time_left_ms,
+                multiplier,
+                round_time_elapsed_ms,
+            } => {
+                let response_data = create_join_game_response_success(
+                    game_state,
+                    betting_time_left_ms,
+                    multiplier,
+                    round_time_elapsed_ms,
+                );
+                ctx.binary(response_data);
+            }
+            GameEvent::BettingTimerUpdate {
+                betting_time_left_ms,
+            } => {
+                let response_data = create_betting_timer_update_response(betting_time_left_ms);
+                ctx.binary(response_data);
+            }
+            GameEvent::GameRoundUpdate { multiplier } => {
+                let response_data = create_game_update_response(multiplier);
+                ctx.binary(response_data);
+            }
+        }
     }
 }
 
@@ -132,12 +162,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                             &self.env_settings,
                         ) {
                             Ok(_) => {
-                                let success_data = create_auth_response_success();
-                                info!(
-                                    "token valid! sending response bytes of len {:?}",
-                                    &success_data.len()
-                                );
-                                ctx.binary(success_data);
                                 let peer_addr = ctx.address();
                                 self.game_server_addr.do_send(PlayerJoined {
                                     session_id: self.session_id,
@@ -157,14 +181,17 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                         };
                     }
                     ClientData::BetRequest { bet_amount } => {
-                        info!("bet request {:?} {:?}", bet_amount, self.session_id);
+                        // info!("bet request {:?} {:?}", bet_amount, self.session_id);
                         self.game_server_addr.do_send(BetRequest {
                             session_id: self.session_id,
-                            bet_amount: bet_amount
+                            bet_amount: bet_amount,
                         });
                     }
-                    ClientData::CrashOut {  } => {
-                        info!("crash out {:?}", self.session_id);
+                    ClientData::CrashOut {} => {
+                        // info!("crash out {:?}", self.session_id);
+                        self.game_server_addr.do_send(CrashOutRequest {
+                            session_id: self.session_id,
+                        });
                     }
                     ClientData::Unknown => {}
                 }
