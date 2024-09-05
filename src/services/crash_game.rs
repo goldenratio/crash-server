@@ -20,17 +20,17 @@ use super::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum GameState {
-    IDLE,
-    BETTING_IN_PROGRESS,
-    GAME_IN_PROGRESS,
+    Idle,
+    BettingInProgress,
+    GameInProgress,
 }
 
 impl Into<u8> for GameState {
     fn into(self) -> u8 {
         match self {
-            GameState::IDLE => 0,
-            GameState::BETTING_IN_PROGRESS => 1,
-            GameState::GAME_IN_PROGRESS => 2,
+            GameState::Idle => 0,
+            GameState::BettingInProgress => 1,
+            GameState::GameInProgress => 2,
         }
     }
 }
@@ -83,7 +83,7 @@ impl CrashGame {
 
     pub fn start_betting_timer(&self) {
         let valid = match self.get_game_state() {
-            GameState::IDLE => true,
+            GameState::Idle => true,
             _ => false,
         };
 
@@ -102,11 +102,11 @@ impl CrashGame {
         let mut time_left = BETTING_TIMER_MAX_VAL;
 
         game.game_server_addr
-                    .as_ref()
-                    .unwrap()
-                    .do_send(BettingTimerStarted {
-                        betting_time_left_ms: time_left * 1000,
-                    });
+            .as_ref()
+            .unwrap()
+            .do_send(BettingTimerStarted {
+                betting_time_left_ms: time_left * 1000,
+            });
 
         spawn(async move {
             loop {
@@ -133,7 +133,7 @@ impl CrashGame {
 
     fn start_game(&self) {
         let valid = match self.get_game_state() {
-            GameState::GAME_IN_PROGRESS => true,
+            GameState::GameInProgress => true,
             _ => false,
         };
 
@@ -200,14 +200,14 @@ impl CrashGame {
 
     fn get_game_state(&self) -> GameState {
         if self.is_betting_in_progress.load(Ordering::SeqCst) {
-            return GameState::BETTING_IN_PROGRESS;
+            return GameState::BettingInProgress;
         }
 
         if self.is_game_round_in_progress.load(Ordering::SeqCst) {
-            return GameState::GAME_IN_PROGRESS;
+            return GameState::GameInProgress;
         }
 
-        GameState::IDLE
+        GameState::Idle
     }
 
     fn get_round_result(&self) -> RoundResult {

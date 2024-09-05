@@ -12,7 +12,11 @@ use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
     services::message_types::{BetRequest, CrashOutRequest, PlayerJoined},
     utils::flatbuffer_utils::{
-        create_betting_timer_started_response, create_betting_timer_update_response, create_crash_out_response, create_game_finished_response, create_game_started_response, create_game_update_response, create_join_game_response_success, create_remote_player_crash_out_response, create_remote_player_joined_response, create_remote_player_left_response, parse_gameplay_data
+        create_betting_timer_started_response, create_betting_timer_update_response,
+        create_crash_out_response, create_game_finished_response, create_game_started_response,
+        create_game_update_response, create_join_game_response_success,
+        create_remote_player_crash_out_response, create_remote_player_joined_response,
+        create_remote_player_left_response, parse_gameplay_data,
     },
 };
 
@@ -64,11 +68,8 @@ impl Actor for Peer {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let peer_addr = ctx.address();
         self.game_server_addr
-            .send(Connect {
-                peer_addr: peer_addr.recipient(),
-            })
+            .send(Connect {})
             .into_actor(self)
             .then(|res, act, ctx| {
                 match res {
@@ -117,10 +118,12 @@ impl Handler<GameEvent> for Peer {
                 );
                 ctx.binary(response_data);
             }
-            GameEvent::BettingTimerStarted { betting_time_left_ms } => {
+            GameEvent::BettingTimerStarted {
+                betting_time_left_ms,
+            } => {
                 let response_data = create_betting_timer_started_response(betting_time_left_ms);
                 ctx.binary(response_data);
-            },
+            }
             GameEvent::BettingTimerUpdate {
                 betting_time_left_ms,
             } => {

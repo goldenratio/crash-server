@@ -1,12 +1,9 @@
 use actix_web::{http::StatusCode, post, web, HttpResponse, Responder, ResponseError};
 use derive_more::Display;
-use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::{
-    routes::utils::auth_token_extractor::{UserAuthentication, UserClaims},
-    services::env_settings::EnvSettings,
+    routes::utils::auth_token_extractor::UserAuthentication, services::env_settings::EnvSettings,
 };
 
 use super::utils::error_response::AppErrorResponse;

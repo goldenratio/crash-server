@@ -2,7 +2,12 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, BettingTimerStarted, BettingTimerStartedArgs, BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs, GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted, GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs, RemotePlayerCrashOut, RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft, RemotePlayerLeftArgs, RequestMessages, ResponseMessage
+        root_as_game_request_event, BettingTimerStarted, BettingTimerStartedArgs,
+        BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs,
+        GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted,
+        GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs,
+        RemotePlayerCrashOut, RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs,
+        RemotePlayerLeft, RemotePlayerLeftArgs, RequestMessages, ResponseMessage,
     },
     services::peer::ClientData,
 };

@@ -14,7 +14,8 @@ use super::{
     crash_game::CrashGame,
     game_stats::GameStats,
     message_types::{
-        BetRequest, BettingTimerStarted, BettingTimerUpdate, Connect, CrashOutRequest, Disconnect, GameEvent, GameFinished, GameRoundUpdate, GameStarted, PlayerJoined
+        BetRequest, BettingTimerStarted, BettingTimerUpdate, Connect, CrashOutRequest, Disconnect,
+        GameEvent, GameFinished, GameRoundUpdate, GameStarted, PlayerJoined,
     },
 };
 
@@ -139,7 +140,7 @@ impl Handler<PlayerJoined> for GameServer {
         }
 
         match game_data.game_state {
-            GameState::IDLE => {
+            GameState::Idle => {
                 // start betting timer, If game is idle
                 self.crash_game.start_betting_timer();
             }
@@ -156,7 +157,7 @@ impl Handler<BetRequest> for GameServer {
     fn handle(&mut self, msg: BetRequest, _: &mut Self::Context) -> Self::Result {
         if let Some(uuid) = self.peer_session_uuid_map.get(&msg.session_id) {
             let GameData { game_state, .. } = self.crash_game.get_game_data();
-            if matches!(game_state, GameState::BETTING_IN_PROGRESS) {
+            if matches!(game_state, GameState::BettingInProgress) {
                 info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
                 // place bets and stuff
                 self.bet_map.insert(uuid.clone(), msg.bet_amount);
@@ -179,7 +180,7 @@ impl Handler<CrashOutRequest> for GameServer {
                 multiplier,
                 ..
             } = self.crash_game.get_game_data();
-            if matches!(game_state, GameState::GAME_IN_PROGRESS) {
+            if matches!(game_state, GameState::GameInProgress) {
                 let bet_amount = self.bet_map.get(uuid).unwrap_or_else(|| &0);
                 if *bet_amount > 0 {
                     let win_amount = *bet_amount * multiplier as u64;
@@ -211,7 +212,7 @@ impl Handler<CrashOutRequest> for GameServer {
                             if client_id != uuid {
                                 client_addr.do_send(GameEvent::RemotePlayerCrashOut {
                                     display_name: display_name.clone(),
-                                    win_amount: win_amount
+                                    win_amount: win_amount,
                                 });
                             }
                         }

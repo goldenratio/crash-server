@@ -4,9 +4,7 @@ use actix::{Message, Recipient};
 
 #[derive(Message)]
 #[rtype(usize)]
-pub struct Connect {
-    pub peer_addr: Recipient<GameEvent>,
-}
+pub struct Connect {}
 
 /// Session is disconnected
 #[derive(Message)]
