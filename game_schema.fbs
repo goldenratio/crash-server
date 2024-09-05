@@ -9,9 +9,9 @@ table BetRequest {
   bet_amount: uint64;
 }
 
-table CrashOut {}
+table CrashOutRequest {}
 
-union RequestMessages { JoinGameRequest, BetRequest, CrashOut }
+union RequestMessages { JoinGameRequest, BetRequest, CrashOutRequest }
 
 table GameRequestEvent {
   msg: RequestMessages;
@@ -22,6 +22,7 @@ table JoinGameResponse {
   betting_time_left: uint32;
   round_time_elapsed: uint32;
   multiplier: uint32;
+  display_name: string;
 }
 
 table BettingTimerStarted {
@@ -32,19 +33,38 @@ table BettingTimerUpdate {
   betting_time_left: uint32;
 }
 
-table GameStarted {
-
+table RemotePlayerJoined {
+  display_name: string;
 }
+
+table RemotePlayerLeft {
+  display_name: string;
+}
+
+table RemotePlayerCrashOut {
+  display_name: string;
+  win_amount: uint64;
+}
+
+table CrashOutResponse {
+  win_amount: uint64;
+  multiplier: uint32;
+}
+
+table GameStarted {}
 
 table GameUpdate {
   multiplier: uint32;
 }
 
-table GameFinished {
-  win_amount: uint64;
-}
+table GameFinished {}
 
-union ResponseMessage { JoinGameResponse, BettingTimerStarted, BettingTimerUpdate, GameStarted, GameUpdate, GameFinished }
+union ResponseMessage {
+  JoinGameResponse, BettingTimerStarted, BettingTimerUpdate,
+  GameStarted, GameUpdate, GameFinished,
+  CrashOutResponse,
+  RemotePlayerJoined, RemotePlayerLeft, RemotePlayerCrashOut
+}
 
 table GameResponseEvent {
   msg: ResponseMessage;

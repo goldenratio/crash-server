@@ -52,14 +52,21 @@ pub enum GameEvent {
         betting_time_left_ms: u32,
         /// in milliseconds
         round_time_elapsed_ms: u32,
+        display_name: String,
     },
     BettingTimerUpdate {
         /// in milliseconds
         betting_time_left_ms: u32,
     },
+    GameStarted {},
     GameRoundUpdate {
         multiplier: u32,
     },
+    GameFinished {},
+    CrashOutResponse {
+        win_amount: u64,
+        multiplier: u32,
+    }
 }
 
 // messages between gameServer and CrashGame
@@ -76,3 +83,11 @@ pub struct GameRoundUpdate {
     /// in milliseconds
     pub multiplier: u32,
 }
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct GameStarted {}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct GameFinished {}

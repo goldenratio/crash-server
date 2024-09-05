@@ -13,7 +13,7 @@ use map_range::MapRange;
 
 use crate::services::message_types::{BettingTimerUpdate, GameRoundUpdate};
 
-use super::game_server::GameServer;
+use super::{game_server::GameServer, message_types::{GameFinished, GameStarted}};
 
 #[derive(Debug, Clone, Copy)]
 pub enum GameState {
@@ -135,10 +135,20 @@ impl CrashGame {
         let mut current_second: u32 = 0;
         let game = Arc::new(self.clone()); // or self.clone()
 
+        game.game_server_addr
+                    .as_ref()
+                    .unwrap()
+                    .do_send(GameStarted {});
+
         let mut interval = time::interval(Duration::from_secs(1));
         spawn(async move {
             loop {
                 if current_second >= round_result.animation_duration {
+                    // send updates to peers
+                game.game_server_addr
+                .as_ref()
+                .unwrap()
+                .do_send(GameFinished {});
                     game.on_game_finished();
                     return;
                 }
@@ -174,14 +184,6 @@ impl CrashGame {
             betting_time_left_ms: self.betting_time_left.load(Ordering::Relaxed) * 1000,
             round_time_elapsed_ms: self.round_time_elapsed.load(Ordering::Relaxed) * 1000,
         }
-    }
-
-    pub fn place_bets(&self, player_uuid: &String, bet_amount: u64) {
-        //
-    }
-
-    pub fn crash_out(&self, player_uuid: &String) {
-        //
     }
 
     fn get_game_state(&self) -> GameState {
@@ -233,5 +235,6 @@ impl CrashGame {
         self.betting_time_left
             .store(BETTING_TIMER_MAX_VAL, Ordering::SeqCst);
         self.round_time_elapsed.store(0, Ordering::SeqCst);
+        self.current_multiplier.store(0, Ordering::SeqCst);
     }
 }

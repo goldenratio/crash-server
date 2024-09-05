@@ -12,8 +12,7 @@ use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
     services::message_types::{BetRequest, CrashOutRequest, PlayerJoined},
     utils::flatbuffer_utils::{
-        create_betting_timer_update_response, create_game_update_response,
-        create_join_game_response_success, parse_gameplay_data,
+        create_betting_timer_update_response, create_crash_out_response, create_game_finished_response, create_game_started_response, create_game_update_response, create_join_game_response_success, create_remote_player_joined_response, create_remote_player_left_response, parse_gameplay_data
     },
 };
 
@@ -33,7 +32,7 @@ pub enum ClientData {
         /// in cents
         bet_amount: u64,
     },
-    CrashOut {},
+    CrashOutRequest {},
     Unknown,
 }
 
@@ -102,19 +101,19 @@ impl Handler<GameEvent> for Peer {
 
     fn handle(&mut self, msg: GameEvent, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            GameEvent::RemotePlayerJoined { display_name } => todo!(),
-            GameEvent::RemotePlayerLeft { display_name } => todo!(),
             GameEvent::PlayerJoinedResponse {
                 game_state,
                 betting_time_left_ms,
                 multiplier,
                 round_time_elapsed_ms,
+                display_name,
             } => {
                 let response_data = create_join_game_response_success(
                     game_state,
                     betting_time_left_ms,
                     multiplier,
                     round_time_elapsed_ms,
+                    display_name,
                 );
                 ctx.binary(response_data);
             }
@@ -124,8 +123,28 @@ impl Handler<GameEvent> for Peer {
                 let response_data = create_betting_timer_update_response(betting_time_left_ms);
                 ctx.binary(response_data);
             }
+            GameEvent::GameStarted {} => {
+                let response_data = create_game_started_response();
+                ctx.binary(response_data);
+            }
+            GameEvent::GameFinished { } => {
+                let response_data = create_game_finished_response();
+                ctx.binary(response_data);
+            }
             GameEvent::GameRoundUpdate { multiplier } => {
                 let response_data = create_game_update_response(multiplier);
+                ctx.binary(response_data);
+            }
+            GameEvent::CrashOutResponse { win_amount, multiplier } => {
+                let response_data = create_crash_out_response(win_amount, multiplier);
+                ctx.binary(response_data);
+            },
+            GameEvent::RemotePlayerJoined { display_name } => {
+                let response_data = create_remote_player_joined_response(display_name);
+                ctx.binary(response_data);
+            }
+            GameEvent::RemotePlayerLeft { display_name } => {
+                let response_data = create_remote_player_left_response(display_name);
                 ctx.binary(response_data);
             }
         }
@@ -187,7 +206,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                             bet_amount: bet_amount,
                         });
                     }
-                    ClientData::CrashOut {} => {
+                    ClientData::CrashOutRequest {} => {
                         // info!("crash out {:?}", self.session_id);
                         self.game_server_addr.do_send(CrashOutRequest {
                             session_id: self.session_id,
