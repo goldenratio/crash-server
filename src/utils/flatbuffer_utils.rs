@@ -2,7 +2,7 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs, GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted, GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft, RemotePlayerLeftArgs, RequestMessages, ResponseMessage
+        root_as_game_request_event, BettingTimerStarted, BettingTimerStartedArgs, BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs, GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted, GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs, RemotePlayerCrashOut, RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft, RemotePlayerLeftArgs, RequestMessages, ResponseMessage
     },
     services::peer::ClientData,
 };
@@ -186,11 +186,7 @@ pub fn create_game_finished_response() -> Vec<u8> {
     bytes.clear();
     bldr.reset();
 
-    let msg = GameFinished::create(
-        &mut bldr,
-        &GameFinishedArgs {},
-    )
-    .as_union_value();
+    let msg = GameFinished::create(&mut bldr, &GameFinishedArgs {}).as_union_value();
 
     let args = GameResponseEventArgs {
         msg_type: ResponseMessage::GameFinished,
@@ -216,7 +212,7 @@ pub fn create_betting_timer_update_response(betting_time_left: u32) -> Vec<u8> {
 
     let msg = BettingTimerUpdate::create(
         &mut bldr,
-        &&BettingTimerUpdateArgs {
+        &BettingTimerUpdateArgs {
             betting_time_left: betting_time_left,
         },
     )
@@ -224,6 +220,36 @@ pub fn create_betting_timer_update_response(betting_time_left: u32) -> Vec<u8> {
 
     let args = GameResponseEventArgs {
         msg_type: ResponseMessage::BettingTimerUpdate,
+        msg: Option::from(msg),
+    };
+
+    let user_offset = GameResponseEvent::create(&mut bldr, &args);
+    bldr.finish(user_offset, None);
+
+    // Copy the serialized FlatBuffers data to our own byte buffer.
+    let finished_data = bldr.finished_data();
+    bytes.extend_from_slice(finished_data);
+
+    bytes
+}
+
+pub fn create_betting_timer_started_response(betting_time_left: u32) -> Vec<u8> {
+    let mut bldr = FlatBufferBuilder::new();
+    let mut bytes: Vec<u8> = Vec::new();
+
+    bytes.clear();
+    bldr.reset();
+
+    let msg = BettingTimerStarted::create(
+        &mut bldr,
+        &BettingTimerStartedArgs {
+            betting_time_left: betting_time_left,
+        },
+    )
+    .as_union_value();
+
+    let args = GameResponseEventArgs {
+        msg_type: ResponseMessage::BettingTimerStarted,
         msg: Option::from(msg),
     };
 
@@ -288,6 +314,39 @@ pub fn create_remote_player_left_response(display_name: String) -> Vec<u8> {
 
     let args = GameResponseEventArgs {
         msg_type: ResponseMessage::RemotePlayerLeft,
+        msg: Option::from(msg),
+    };
+
+    let user_offset = GameResponseEvent::create(&mut bldr, &args);
+    bldr.finish(user_offset, None);
+
+    // Copy the serialized FlatBuffers data to our own byte buffer.
+    let finished_data = bldr.finished_data();
+    bytes.extend_from_slice(finished_data);
+
+    bytes
+}
+
+pub fn create_remote_player_crash_out_response(display_name: String, win_amount: u64) -> Vec<u8> {
+    let mut bldr = FlatBufferBuilder::new();
+    let mut bytes: Vec<u8> = Vec::new();
+
+    bytes.clear();
+    bldr.reset();
+
+    let display_name_str = bldr.create_string(&display_name);
+
+    let msg = RemotePlayerCrashOut::create(
+        &mut bldr,
+        &RemotePlayerCrashOutArgs {
+            display_name: Option::from(display_name_str),
+            win_amount: win_amount,
+        },
+    )
+    .as_union_value();
+
+    let args = GameResponseEventArgs {
+        msg_type: ResponseMessage::RemotePlayerCrashOut,
         msg: Option::from(msg),
     };
 

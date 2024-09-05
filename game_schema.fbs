@@ -60,7 +60,8 @@ table GameUpdate {
 table GameFinished {}
 
 union ResponseMessage {
-  JoinGameResponse, BettingTimerStarted, BettingTimerUpdate,
+  JoinGameResponse,
+  BettingTimerStarted, BettingTimerUpdate,
   GameStarted, GameUpdate, GameFinished,
   CrashOutResponse,
   RemotePlayerJoined, RemotePlayerLeft, RemotePlayerCrashOut

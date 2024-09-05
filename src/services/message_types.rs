@@ -45,6 +45,10 @@ pub enum GameEvent {
     RemotePlayerLeft {
         display_name: String,
     },
+    RemotePlayerCrashOut {
+        display_name: String,
+        win_amount: u64,
+    },
     PlayerJoinedResponse {
         game_state: u8,
         multiplier: u32,
@@ -53,6 +57,14 @@ pub enum GameEvent {
         /// in milliseconds
         round_time_elapsed_ms: u32,
         display_name: String,
+    },
+    CrashOutResponse {
+        win_amount: u64,
+        multiplier: u32,
+    },
+    BettingTimerStarted {
+        /// in milliseconds
+        betting_time_left_ms: u32,
     },
     BettingTimerUpdate {
         /// in milliseconds
@@ -63,13 +75,16 @@ pub enum GameEvent {
         multiplier: u32,
     },
     GameFinished {},
-    CrashOutResponse {
-        win_amount: u64,
-        multiplier: u32,
-    }
 }
 
 // messages between gameServer and CrashGame
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct BettingTimerStarted {
+    /// in milliseconds
+    pub betting_time_left_ms: u32,
+}
+
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct BettingTimerUpdate {

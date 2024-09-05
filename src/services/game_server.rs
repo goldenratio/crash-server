@@ -5,13 +5,16 @@ use actix_web::web;
 use log::{info, warn};
 use rand::{rngs::ThreadRng, Rng};
 
-use crate::services::{crash_game::{GameData, GameState}, generate_username::generate_guest_username};
+use crate::services::{
+    crash_game::{GameData, GameState},
+    generate_username::generate_guest_username,
+};
 
 use super::{
     crash_game::CrashGame,
     game_stats::GameStats,
     message_types::{
-        BetRequest, BettingTimerUpdate, Connect, CrashOutRequest, Disconnect, GameEvent, GameFinished, GameRoundUpdate, GameStarted, PlayerJoined
+        BetRequest, BettingTimerStarted, BettingTimerUpdate, Connect, CrashOutRequest, Disconnect, GameEvent, GameFinished, GameRoundUpdate, GameStarted, PlayerJoined
     },
 };
 
@@ -20,6 +23,7 @@ pub struct GameServer {
     peer_addr_map: HashMap<String, Recipient<GameEvent>>,
     peer_session_uuid_map: HashMap<usize, String>,
     peer_display_name_map: HashMap<String, String>,
+    bet_map: HashMap<String, u64>,
     rng: ThreadRng,
     game_stats: web::Data<GameStats>,
     crash_game: CrashGame,
@@ -31,6 +35,7 @@ impl GameServer {
             peer_addr_map: Default::default(),
             peer_session_uuid_map: Default::default(),
             peer_display_name_map: Default::default(),
+            bet_map: Default::default(),
             rng: rand::thread_rng(),
             game_stats,
             crash_game: CrashGame::new(),
@@ -52,7 +57,7 @@ impl Actor for GameServer {
 impl Handler<Connect> for GameServer {
     type Result = usize;
 
-    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _: Connect, _: &mut Self::Context) -> Self::Result {
         info!("peer connected!");
         // register session with random id
         let session_id = self.rng.gen::<usize>();
@@ -154,10 +159,10 @@ impl Handler<BetRequest> for GameServer {
             if matches!(game_state, GameState::BETTING_IN_PROGRESS) {
                 info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
                 // place bets and stuff
+                self.bet_map.insert(uuid.clone(), msg.bet_amount);
             } else {
                 warn!("bets received when state is not in BETTING_IN_PROGRESS");
             }
-
         } else {
             warn!("BetRequest: unknown session id {:?}", msg.session_id);
         }
@@ -169,15 +174,52 @@ impl Handler<CrashOutRequest> for GameServer {
 
     fn handle(&mut self, msg: CrashOutRequest, _: &mut Self::Context) -> Self::Result {
         if let Some(uuid) = self.peer_session_uuid_map.get(&msg.session_id) {
-            let GameData { game_state, .. } = self.crash_game.get_game_data();
+            let GameData {
+                game_state,
+                multiplier,
+                ..
+            } = self.crash_game.get_game_data();
             if matches!(game_state, GameState::GAME_IN_PROGRESS) {
-                info!("player crashed out! {:?}", uuid);
-                // place bets and stuff
+                let bet_amount = self.bet_map.get(uuid).unwrap_or_else(|| &0);
+                if *bet_amount > 0 {
+                    let win_amount = *bet_amount * multiplier as u64;
+                    info!(
+                        "player crashed out! {:?}, winAmount: {:?}",
+                        uuid, win_amount
+                    );
+                    // todo: update result in db
+
+                    // remove from map
+                    self.bet_map.remove(uuid);
+
+                    // send result to the owner addr
+                    for (client_id, client_addr) in &self.peer_addr_map {
+                        if client_id == uuid {
+                            client_addr.do_send(GameEvent::CrashOutResponse {
+                                win_amount: win_amount,
+                                multiplier: multiplier,
+                            });
+                        } else {
+                            warn!("unable to send crash out response to peer client!");
+                        }
+                    }
+
+                    // send notification to other players
+                    if let Some(display_name) = self.peer_display_name_map.get(uuid) {
+                        for (client_id, client_addr) in &self.peer_addr_map {
+                            // skip the current player
+                            if client_id != uuid {
+                                client_addr.do_send(GameEvent::RemotePlayerCrashOut {
+                                    display_name: display_name.clone(),
+                                    win_amount: win_amount
+                                });
+                            }
+                        }
+                    }
+                }
             } else {
                 warn!("crashOut received when state is not in GAME_IN_PROGRESS");
             }
-
-            // send crash out response
         } else {
             warn!("CrashOutRequest: unknown session id {:?}", msg.session_id);
         }
@@ -187,6 +229,18 @@ impl Handler<CrashOutRequest> for GameServer {
 // --------------------------------
 // messages from CrashGame
 // --------------------------------
+
+impl Handler<BettingTimerStarted> for GameServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: BettingTimerStarted, _: &mut Self::Context) -> Self::Result {
+        for (_, client_addr) in &self.peer_addr_map {
+            client_addr.do_send(GameEvent::BettingTimerStarted {
+                betting_time_left_ms: msg.betting_time_left_ms,
+            });
+        }
+    }
+}
 
 impl Handler<BettingTimerUpdate> for GameServer {
     type Result = ();
@@ -219,7 +273,7 @@ impl Handler<GameStarted> for GameServer {
 
     fn handle(&mut self, _: GameStarted, _: &mut Self::Context) -> Self::Result {
         for (_, client_addr) in &self.peer_addr_map {
-            client_addr.do_send(GameEvent::GameStarted {  });
+            client_addr.do_send(GameEvent::GameStarted {});
         }
     }
 }
@@ -229,7 +283,13 @@ impl Handler<GameFinished> for GameServer {
 
     fn handle(&mut self, _: GameFinished, _: &mut Self::Context) -> Self::Result {
         for (_, client_addr) in &self.peer_addr_map {
-            client_addr.do_send(GameEvent::GameFinished {  });
+            client_addr.do_send(GameEvent::GameFinished {});
+            self.bet_map.clear();
+
+            let can_start_new_game = self.peer_addr_map.len() > 0;
+            if can_start_new_game {
+                self.crash_game.start_betting_timer();
+            }
         }
     }
 }

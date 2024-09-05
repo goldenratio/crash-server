@@ -13,7 +13,10 @@ use map_range::MapRange;
 
 use crate::services::message_types::{BettingTimerUpdate, GameRoundUpdate};
 
-use super::{game_server::GameServer, message_types::{GameFinished, GameStarted}};
+use super::{
+    game_server::GameServer,
+    message_types::{BettingTimerStarted, GameFinished, GameStarted},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum GameState {
@@ -97,6 +100,14 @@ impl CrashGame {
 
         let mut interval = time::interval(Duration::from_secs(1));
         let mut time_left = BETTING_TIMER_MAX_VAL;
+
+        game.game_server_addr
+                    .as_ref()
+                    .unwrap()
+                    .do_send(BettingTimerStarted {
+                        betting_time_left_ms: time_left * 1000,
+                    });
+
         spawn(async move {
             loop {
                 // note: can't be 0, u64 out of range
@@ -107,8 +118,9 @@ impl CrashGame {
                     return;
                 }
                 interval.tick().await;
+
                 time_left = game.betting_time_left.fetch_sub(1, Ordering::SeqCst);
-                // info!("time left brrr: {:?}", time_left);
+
                 game.game_server_addr
                     .as_ref()
                     .unwrap()
@@ -136,19 +148,19 @@ impl CrashGame {
         let game = Arc::new(self.clone()); // or self.clone()
 
         game.game_server_addr
-                    .as_ref()
-                    .unwrap()
-                    .do_send(GameStarted {});
+            .as_ref()
+            .unwrap()
+            .do_send(GameStarted {});
 
         let mut interval = time::interval(Duration::from_secs(1));
         spawn(async move {
             loop {
                 if current_second >= round_result.animation_duration {
                     // send updates to peers
-                game.game_server_addr
-                .as_ref()
-                .unwrap()
-                .do_send(GameFinished {});
+                    game.game_server_addr
+                        .as_ref()
+                        .unwrap()
+                        .do_send(GameFinished {});
                     game.on_game_finished();
                     return;
                 }

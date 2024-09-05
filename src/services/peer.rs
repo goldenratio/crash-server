@@ -12,7 +12,7 @@ use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
     services::message_types::{BetRequest, CrashOutRequest, PlayerJoined},
     utils::flatbuffer_utils::{
-        create_betting_timer_update_response, create_crash_out_response, create_game_finished_response, create_game_started_response, create_game_update_response, create_join_game_response_success, create_remote_player_joined_response, create_remote_player_left_response, parse_gameplay_data
+        create_betting_timer_started_response, create_betting_timer_update_response, create_crash_out_response, create_game_finished_response, create_game_started_response, create_game_update_response, create_join_game_response_success, create_remote_player_crash_out_response, create_remote_player_joined_response, create_remote_player_left_response, parse_gameplay_data
     },
 };
 
@@ -117,6 +117,10 @@ impl Handler<GameEvent> for Peer {
                 );
                 ctx.binary(response_data);
             }
+            GameEvent::BettingTimerStarted { betting_time_left_ms } => {
+                let response_data = create_betting_timer_started_response(betting_time_left_ms);
+                ctx.binary(response_data);
+            },
             GameEvent::BettingTimerUpdate {
                 betting_time_left_ms,
             } => {
@@ -127,7 +131,7 @@ impl Handler<GameEvent> for Peer {
                 let response_data = create_game_started_response();
                 ctx.binary(response_data);
             }
-            GameEvent::GameFinished { } => {
+            GameEvent::GameFinished {} => {
                 let response_data = create_game_finished_response();
                 ctx.binary(response_data);
             }
@@ -135,16 +139,27 @@ impl Handler<GameEvent> for Peer {
                 let response_data = create_game_update_response(multiplier);
                 ctx.binary(response_data);
             }
-            GameEvent::CrashOutResponse { win_amount, multiplier } => {
+            GameEvent::CrashOutResponse {
+                win_amount,
+                multiplier,
+            } => {
                 let response_data = create_crash_out_response(win_amount, multiplier);
                 ctx.binary(response_data);
-            },
+            }
             GameEvent::RemotePlayerJoined { display_name } => {
                 let response_data = create_remote_player_joined_response(display_name);
                 ctx.binary(response_data);
             }
             GameEvent::RemotePlayerLeft { display_name } => {
                 let response_data = create_remote_player_left_response(display_name);
+                ctx.binary(response_data);
+            }
+            GameEvent::RemotePlayerCrashOut {
+                display_name,
+                win_amount,
+            } => {
+                let response_data =
+                    create_remote_player_crash_out_response(display_name, win_amount);
                 ctx.binary(response_data);
             }
         }
