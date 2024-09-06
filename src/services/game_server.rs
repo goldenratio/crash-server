@@ -158,9 +158,31 @@ impl Handler<BetRequest> for GameServer {
         if let Some(uuid) = self.peer_session_uuid_map.get(&msg.session_id) {
             let GameData { game_state, .. } = self.crash_game.get_game_data();
             if matches!(game_state, GameState::BettingInProgress) {
-                info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
-                // place bets and stuff
-                self.bet_map.insert(uuid.clone(), msg.bet_amount);
+
+                // avoid duplicate bets
+                if !self.bet_map.contains_key(uuid) {
+                    info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
+                    // todo: check if player has enough balance
+
+                    // place bets and stuff
+                    self.bet_map.insert(uuid.clone(), msg.bet_amount);
+
+                    // send notification to other players
+                    if let Some(display_name) = self.peer_display_name_map.get(uuid) {
+                        for (client_id, client_addr) in &self.peer_addr_map {
+                            // skip the current player
+                            if client_id != uuid {
+                                client_addr.do_send(GameEvent::RemotePlayerBetsPlaced {
+                                    display_name: display_name.clone(),
+                                    bet_amount: msg.bet_amount
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    // bets are already placed
+                }
+
             } else {
                 warn!("bets received when state is not in BETTING_IN_PROGRESS");
             }
@@ -289,7 +311,7 @@ impl Handler<GameFinished> for GameServer {
 
             let can_start_new_game = self.peer_addr_map.len() > 0;
             if can_start_new_game {
-                self.crash_game.start_betting_timer();
+                // self.crash_game.start_betting_timer();
             }
         }
     }

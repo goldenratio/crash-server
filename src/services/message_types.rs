@@ -43,6 +43,10 @@ pub enum GameEvent {
     RemotePlayerLeft {
         display_name: String,
     },
+    RemotePlayerBetsPlaced {
+        display_name: String,
+        bet_amount: u64,
+    },
     RemotePlayerCrashOut {
         display_name: String,
         win_amount: u64,
