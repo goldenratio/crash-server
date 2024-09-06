@@ -2,7 +2,13 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, BettingTimerStarted, BettingTimerStartedArgs, BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs, GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted, GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs, RemotePlayerBetsPlaced, RemotePlayerBetsPlacedArgs, RemotePlayerCrashOut, RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft, RemotePlayerLeftArgs, RequestMessages, ResponseMessage
+        root_as_game_request_event, BettingTimerStarted, BettingTimerStartedArgs,
+        BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs,
+        GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted,
+        GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs,
+        RemotePlayerBetsPlaced, RemotePlayerBetsPlacedArgs, RemotePlayerCrashOut,
+        RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft,
+        RemotePlayerLeftArgs, RequestMessages, ResponseMessage,
     },
     services::peer::ClientData,
 };
@@ -69,7 +75,7 @@ pub fn create_join_game_response_success(
             multiplier: multiplier,
             round_time_elapsed: round_time_elapsed_ms,
             display_name: Option::from(display_name_str),
-            balance: 0
+            balance: 0,
         },
     )
     .as_union_value();
@@ -107,7 +113,7 @@ pub fn create_crash_out_response(win_amount: u64, multiplier: u32) -> Vec<u8> {
         &CrashOutResponseArgs {
             win_amount: win_amount,
             multiplier: multiplier,
-            balance: 0
+            balance: 0,
         },
     )
     .as_union_value();
@@ -342,7 +348,7 @@ pub fn create_remote_player_bets_placed_response(display_name: String, bet_amoun
         &mut bldr,
         &RemotePlayerBetsPlacedArgs {
             display_name: Option::from(display_name_str),
-            bet_amount: bet_amount
+            bet_amount: bet_amount,
         },
     )
     .as_union_value();
