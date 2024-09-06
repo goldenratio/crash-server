@@ -1,3 +1,1 @@
-pub struct Balance {
-
-}
+pub struct Balance {}
