@@ -30,8 +30,10 @@ impl CrashGameMath {
             return Some(1.0);
         }
 
-        let precision: usize = 52; // 52-bit integer
-                                   // 4 = Since each hex character represents 4 bits
+        // 64 bit Double-precision floating-point format -> 12 = (Sign bit: 1 bit, Exponent: 11 bits)
+        let precision: usize = 64 - 12;
+
+        // 4 = Since each hex character represents 4 bits
         let h = u64::from_str_radix(&hex_hash[..(precision / 4)], 16).unwrap();
         let e = 2u64.pow(precision as u32);
 
@@ -66,7 +68,7 @@ impl CrashGameMath {
         let start_index = if o > 0 { o - 4 } else { 0 };
         for n in (start_index..hash.len()).step_by(4) {
             let h = u64::from_str_radix(&hash[n..n + 4], 16).unwrap() % mod_val as u64;
-            let b = val << 16;
+            let b = val << 16; // same as val * Math.pow(2, 16)
             val = b + h;
         }
         val == 0
