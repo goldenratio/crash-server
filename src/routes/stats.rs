@@ -8,7 +8,7 @@ use crate::services::game_stats::GameStats;
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct StatsResponseData {
-    players_online: usize,
+    players_online: u32,
 }
 
 #[get("/stats")]

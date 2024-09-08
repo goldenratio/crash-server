@@ -1,5 +1,6 @@
-pub mod balance;
+pub mod balance_system;
 pub mod crash_game;
+pub mod crash_game_math;
 pub mod env_settings;
 pub mod game_server;
 pub mod game_stats;

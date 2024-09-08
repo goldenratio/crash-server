@@ -1,14 +1,14 @@
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::{atomic::AtomicU32, Arc};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GameStats {
-    pub players_online: Arc<AtomicUsize>,
+    pub players_online: Arc<AtomicU32>,
 }
 
 impl GameStats {
     pub fn new() -> Self {
         Self {
-            players_online: Arc::new(AtomicUsize::new(0)),
+            players_online: Arc::new(AtomicU32::new(0)),
         }
     }
 }

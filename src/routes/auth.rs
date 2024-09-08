@@ -3,7 +3,11 @@ use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    routes::utils::auth_token_extractor::UserAuthentication, services::env_settings::EnvSettings,
+    routes::utils::auth_token_extractor::UserAuthentication,
+    services::{
+        balance_system::{self, BalanceSystem},
+        env_settings::EnvSettings,
+    },
 };
 
 use super::utils::error_response::AppErrorResponse;
@@ -61,6 +65,7 @@ impl ResponseError for LoginError {
 async fn auth_login(
     param_obj: web::Json<LoginRequestData>,
     env_settings: web::Data<EnvSettings>,
+    balance_system: web::Data<BalanceSystem>,
 ) -> Result<impl Responder, LoginError> {
     let payload = param_obj.into_inner();
     log::info!("/auth {:?}", payload);
@@ -72,10 +77,11 @@ async fn auth_login(
 
             let response_data = LoginSuccessResponse {
                 jwt_token: guest_auth.authentication_token,
-                uuid: guest_auth.uuid,
+                uuid: guest_auth.uuid.clone(),
                 display_name: "".to_string(),
             };
 
+            balance_system.create_guest_balance(guest_auth.uuid.clone());
             Ok(web::Json(response_data))
         }
         // todo: real mode

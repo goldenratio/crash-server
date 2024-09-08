@@ -52,6 +52,7 @@ pub fn create_join_game_response_success(
     multiplier: u32,
     round_time_elapsed_ms: u32,
     display_name: String,
+    balance: u64,
 ) -> Vec<u8> {
     let mut bldr = FlatBufferBuilder::new();
     let mut bytes: Vec<u8> = Vec::new();
@@ -75,7 +76,7 @@ pub fn create_join_game_response_success(
             multiplier: multiplier,
             round_time_elapsed: round_time_elapsed_ms,
             display_name: Option::from(display_name_str),
-            balance: 0,
+            balance: balance,
         },
     )
     .as_union_value();
@@ -101,7 +102,7 @@ pub fn create_join_game_response_success(
     bytes
 }
 
-pub fn create_crash_out_response(win_amount: u64, multiplier: u32) -> Vec<u8> {
+pub fn create_crash_out_response(win_amount: u64, multiplier: u32, balance: u64) -> Vec<u8> {
     let mut bldr = FlatBufferBuilder::new();
     let mut bytes: Vec<u8> = Vec::new();
 
@@ -113,7 +114,7 @@ pub fn create_crash_out_response(win_amount: u64, multiplier: u32) -> Vec<u8> {
         &CrashOutResponseArgs {
             win_amount: win_amount,
             multiplier: multiplier,
-            balance: 0,
+            balance: balance,
         },
     )
     .as_union_value();
@@ -241,17 +242,28 @@ pub fn create_betting_timer_update_response(betting_time_left: u32) -> Vec<u8> {
     bytes
 }
 
-pub fn create_betting_timer_started_response(betting_time_left: u32) -> Vec<u8> {
+pub fn create_betting_timer_started_response(
+    betting_time_left: u32,
+    round_id: u32,
+    server_seed_hash: String,
+    next_round_server_seed_hash: String,
+) -> Vec<u8> {
     let mut bldr = FlatBufferBuilder::new();
     let mut bytes: Vec<u8> = Vec::new();
 
     bytes.clear();
     bldr.reset();
 
+    let server_seed_hash_str = bldr.create_string(&server_seed_hash);
+    let next_round_server_seed_hash_str = bldr.create_string(&next_round_server_seed_hash);
+
     let msg = BettingTimerStarted::create(
         &mut bldr,
         &BettingTimerStartedArgs {
             betting_time_left: betting_time_left,
+            round_id,
+            server_seed_hash: Option::from(server_seed_hash_str),
+            next_round_server_seed_hash: Option::from(next_round_server_seed_hash_str),
         },
     )
     .as_union_value();
@@ -271,7 +283,7 @@ pub fn create_betting_timer_started_response(betting_time_left: u32) -> Vec<u8> 
     bytes
 }
 
-pub fn create_remote_player_joined_response(display_name: String) -> Vec<u8> {
+pub fn create_remote_player_joined_response(display_name: String, players_online: u32) -> Vec<u8> {
     let mut bldr = FlatBufferBuilder::new();
     let mut bytes: Vec<u8> = Vec::new();
 
@@ -284,6 +296,7 @@ pub fn create_remote_player_joined_response(display_name: String) -> Vec<u8> {
         &mut bldr,
         &RemotePlayerJoinedArgs {
             display_name: Option::from(display_name_str),
+            players_online,
         },
     )
     .as_union_value();
@@ -303,7 +316,7 @@ pub fn create_remote_player_joined_response(display_name: String) -> Vec<u8> {
     bytes
 }
 
-pub fn create_remote_player_left_response(display_name: String) -> Vec<u8> {
+pub fn create_remote_player_left_response(display_name: String, players_online: u32) -> Vec<u8> {
     let mut bldr = FlatBufferBuilder::new();
     let mut bytes: Vec<u8> = Vec::new();
 
@@ -316,6 +329,7 @@ pub fn create_remote_player_left_response(display_name: String) -> Vec<u8> {
         &mut bldr,
         &RemotePlayerLeftArgs {
             display_name: Option::from(display_name_str),
+            players_online,
         },
     )
     .as_union_value();

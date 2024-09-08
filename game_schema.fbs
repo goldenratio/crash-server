@@ -28,6 +28,9 @@ table JoinGameResponse {
 
 table BettingTimerStarted {
   betting_time_left: uint32;
+  round_id: uint32;
+  server_seed_hash: string;
+  next_round_server_seed_hash: string;
 }
 
 table BettingTimerUpdate {
@@ -36,10 +39,12 @@ table BettingTimerUpdate {
 
 table RemotePlayerJoined {
   display_name: string;
+  players_online: uint32;
 }
 
 table RemotePlayerLeft {
   display_name: string;
+  players_online: uint32;
 }
 
 table RemotePlayerBetsPlaced {
@@ -67,10 +72,12 @@ table GameUpdate {
 
 table GameFinished {}
 
+table GameError {}
+
 union ResponseMessage {
   JoinGameResponse,
   BettingTimerStarted, BettingTimerUpdate,
-  GameStarted, GameUpdate, GameFinished,
+  GameStarted, GameUpdate, GameFinished, GameError,
   CrashOutResponse,
   RemotePlayerJoined, RemotePlayerLeft, RemotePlayerBetsPlaced, RemotePlayerCrashOut
 }

@@ -14,7 +14,12 @@ use routes::{
     stats::get_stats,
     utils::error_response::{AppError, AppErrorResponse},
 };
-use services::{env_settings::EnvSettings, game_server::GameServer, game_stats::GameStats};
+use services::{
+    balance_system::{self, BalanceSystem},
+    env_settings::EnvSettings,
+    game_server::GameServer,
+    game_stats::GameStats,
+};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,11 +28,19 @@ async fn main() -> std::io::Result<()> {
 
     let env_settings = EnvSettings::new();
 
-    let port = 8090;
-    let game_stats = web::Data::new(GameStats::new());
-    let game_server = GameServer::new(game_stats.clone()).start();
+    let port = env_settings.server_port;
 
-    info!("running server in port {:?}", 8090);
+    let game_stats = GameStats::new();
+    let balance_system = BalanceSystem::new();
+    let game_server = GameServer::new(
+        game_stats.clone(),
+        env_settings.clone(),
+        balance_system.clone(),
+    )
+    .start();
+
+    info!("running server in port {:?}", port);
+
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
@@ -35,7 +48,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(Cors::permissive())
             .app_data(web::Data::new(env_settings.clone()))
             .app_data(web::Data::new(game_server.clone()))
-            .app_data(game_stats.clone())
+            .app_data(web::Data::new(game_stats.clone()))
+            .app_data(web::Data::new(balance_system.clone()))
             .app_data(
                 web::JsonConfig::default()
                     .limit(1024)
