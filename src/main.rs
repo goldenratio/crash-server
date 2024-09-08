@@ -15,7 +15,7 @@ use routes::{
     utils::error_response::{AppError, AppErrorResponse},
 };
 use services::{
-    balance_system::{self, BalanceSystem},
+    balance_system::BalanceSystem,
     env_settings::EnvSettings,
     game_server::GameServer,
     game_stats::GameStats,

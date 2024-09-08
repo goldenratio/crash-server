@@ -1,5 +1,4 @@
 use actix::{Actor, AsyncContext, Context, Handler, Recipient};
-use actix_web::web;
 use log::{info, warn};
 use rand::{rngs::ThreadRng, Rng};
 use std::{collections::HashMap, sync::atomic::Ordering};

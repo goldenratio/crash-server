@@ -11,14 +11,10 @@ use actix_web::rt::time;
 use log::{info, warn};
 use map_range::MapRange;
 
-use crate::{
-    services::message_types::{BettingTimerUpdate, GameRoundUpdate},
-    utils::math_utils::round_to_two_decimals,
-};
+use crate::services::message_types::{BettingTimerUpdate, GameRoundUpdate};
 
 use super::{
     crash_game_math::{sha256, CrashGameMath},
-    env_settings::EnvSettings,
     game_server::GameServer,
     message_types::{BettingTimerStarted, GameError, GameFinished, GameStarted},
 };
