@@ -66,4 +66,16 @@ impl BalanceSystem {
             Err(())
         }
     }
+
+    /// Checks if the user has enough balance to subtract the given amount.
+    /// Returns true if the subtraction is possible, otherwise false.
+    pub fn can_sub(&self, uuid: &str, amount_to_sub: u64) -> bool {
+        let map = self.balance_map.read().unwrap();
+        if let Some(balance) = map.get(uuid) {
+            let current_balance = balance.load(Ordering::SeqCst);
+            current_balance >= amount_to_sub
+        } else {
+            false
+        }
+    }
 }

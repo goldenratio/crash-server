@@ -160,17 +160,21 @@ impl Handler<BetRequest> for GameServer {
         // get uuid from session_id
         if let Some(uuid) = self.session_to_uuid.get(&msg.session_id) {
             let game_data = self.crash_game.get_game_data();
-            // ctx.r
+
             if matches!(game_data.game_state, GameState::BettingInProgress) {
+                if !self.balance_system.can_sub(uuid, msg.bet_amount) {
+                    // player doesn't have enough balance
+                    // todo
+                    warn!("bets placed! (not enough balance) {:?} {:?}", uuid, msg.bet_amount);
+                    return;
+                }
+
                 info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
                 if msg.bet_amount > 0 {
                     self.bet_map.insert(uuid.clone(), msg.bet_amount);
-                    // todo: handle error
-                    self.balance_system.sub(uuid.clone(), msg.bet_amount);
                 } else {
                     // player cancelled the bet
-                    let value_to_return = self.bet_map.remove(uuid).unwrap_or(0);
-                    self.balance_system.add(uuid.clone(), value_to_return);
+                    self.bet_map.remove(uuid);
                 }
 
                 if let Some(peer) = self.peers.get(uuid) {
@@ -285,6 +289,11 @@ impl Handler<GameStarted> for GameServer {
     type Result = ();
 
     fn handle(&mut self, _: GameStarted, _: &mut Self::Context) -> Self::Result {
+        // update balance system
+        for (uuid, bet_amount) in &self.bet_map {
+            // todo: handle error
+            self.balance_system.sub(uuid.clone(), *bet_amount);
+        }
         self.broadcast(GameEvent::GameStarted {}, None);
     }
 }
