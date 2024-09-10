@@ -194,7 +194,7 @@ impl CrashGame {
 
                     let current_multiplier = current_second.map_range(
                         0..round_result.animation_duration,
-                        0..round_result.multiplier,
+                        100..round_result.multiplier,
                     );
 
                     // info!("current_multiplier {:?}", current_multiplier);

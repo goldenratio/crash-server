@@ -204,7 +204,7 @@ impl Handler<CrashOutRequest> for GameServer {
 
             if matches!(game_data.game_state, GameState::GameInProgress) {
                 if let Some(bet_amount) = self.bet_map.remove(uuid) {
-                    let win_amount = bet_amount * game_data.multiplier as u64;
+                    let win_amount = (bet_amount as f64 * (game_data.multiplier as f32 / 100.0) as f64) as u64;
                     info!(
                         "player crashed out! {:?}, winAmount: {:?}",
                         uuid, win_amount
