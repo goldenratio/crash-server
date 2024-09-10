@@ -3,6 +3,8 @@ mod routes;
 mod services;
 mod utils;
 
+use std::sync::{Arc, Mutex};
+
 use actix::Actor;
 use actix_cors::Cors;
 use actix_web::{error, middleware, web, App, HttpResponse, HttpServer};
@@ -15,9 +17,7 @@ use routes::{
     utils::error_response::{AppError, AppErrorResponse},
 };
 use services::{
-    balance_system::BalanceSystem,
-    env_settings::EnvSettings,
-    game_server::GameServer,
+    balance_system::{self, BalanceSystem}, env_settings::EnvSettings, game_server::GameServer,
     game_stats::GameStats,
 };
 
@@ -32,10 +32,11 @@ async fn main() -> std::io::Result<()> {
 
     let game_stats = GameStats::new();
     let balance_system = BalanceSystem::new();
+
     let game_server = GameServer::new(
         game_stats.clone(),
         env_settings.clone(),
-        balance_system.clone(),
+        balance_system,
     )
     .start();
 
@@ -49,7 +50,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(env_settings.clone()))
             .app_data(web::Data::new(game_server.clone()))
             .app_data(web::Data::new(game_stats.clone()))
-            .app_data(web::Data::new(balance_system.clone()))
             .app_data(
                 web::JsonConfig::default()
                     .limit(1024)

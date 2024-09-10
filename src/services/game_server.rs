@@ -1,7 +1,7 @@
 use actix::{Actor, AsyncContext, Context, Handler, Recipient};
 use log::{info, warn};
 use rand::{rngs::ThreadRng, Rng};
-use std::{collections::HashMap, sync::atomic::Ordering};
+use std::{collections::HashMap, sync::{atomic::Ordering, Arc, Mutex}};
 
 use crate::services::{crash_game::GameState, generate_username::generate_guest_username};
 
@@ -126,6 +126,8 @@ impl Handler<PlayerJoined> for GameServer {
             .players_online
             .fetch_add(1, Ordering::SeqCst);
 
+        self.balance_system.ensure_balance(msg.uuid.clone());
+
         let game_data = self.crash_game.get_game_data();
 
         msg.peer_addr.do_send(GameEvent::PlayerJoinedResponse {
@@ -134,7 +136,7 @@ impl Handler<PlayerJoined> for GameServer {
             multiplier: game_data.multiplier,
             round_time_elapsed_ms: game_data.round_time_elapsed_ms,
             display_name: display_name.clone(),
-            balance: 0,
+            balance: self.balance_system.fetch_balance(&msg.uuid),
         });
 
         self.broadcast(
@@ -158,23 +160,27 @@ impl Handler<BetRequest> for GameServer {
         // get uuid from session_id
         if let Some(uuid) = self.session_to_uuid.get(&msg.session_id) {
             let game_data = self.crash_game.get_game_data();
-
+            // ctx.r
             if matches!(game_data.game_state, GameState::BettingInProgress) {
-                if !self.bet_map.contains_key(uuid) {
-                    info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
+                info!("bets placed! {:?} {:?}", uuid, msg.bet_amount);
+                if msg.bet_amount > 0 {
                     self.bet_map.insert(uuid.clone(), msg.bet_amount);
-
-                    if let Some(peer) = self.peers.get(uuid) {
-                        self.broadcast(
-                            GameEvent::RemotePlayerBetsPlaced {
-                                display_name: peer.display_name.clone(),
-                                bet_amount: msg.bet_amount,
-                            },
-                            Some(uuid),
-                        );
-                    }
+                    // todo: handle error
+                    self.balance_system.sub(uuid.clone(), msg.bet_amount);
                 } else {
-                    warn!("bets already placed for uuid {:?}", uuid);
+                    // player cancelled the bet
+                    let value_to_return = self.bet_map.remove(uuid).unwrap_or(0);
+                    self.balance_system.add(uuid.clone(), value_to_return);
+                }
+
+                if let Some(peer) = self.peers.get(uuid) {
+                    self.broadcast(
+                        GameEvent::RemotePlayerBetsPlaced {
+                            display_name: peer.display_name.clone(),
+                            bet_amount: msg.bet_amount,
+                        },
+                        Some(uuid),
+                    );
                 }
             } else {
                 warn!("bets received when state is not in BETTING_IN_PROGRESS");
@@ -201,10 +207,13 @@ impl Handler<CrashOutRequest> for GameServer {
                     );
 
                     if let Some(peer) = self.peers.get(uuid) {
+                        // todo: handle error
+                        self.balance_system.add(uuid.clone(), win_amount);
+
                         peer.addr.do_send(GameEvent::CrashOutResponse {
                             win_amount,
                             multiplier: game_data.multiplier,
-                            balance: 0,
+                            balance: self.balance_system.fetch_balance(uuid),
                         });
 
                         self.broadcast(

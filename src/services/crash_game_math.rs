@@ -24,7 +24,7 @@ impl CrashGameMath {
     ) -> Option<f64> {
         let hex_hash = CrashGameMath::generate_round_hex_hash(server_seed, client_seed, round_id);
 
-        let hs: u32 = 100 / (house_edge_pct * 100.0) as u32;
+        let hs = 100.00 / (house_edge_pct * 100.0);
 
         if CrashGameMath::divisible(&hex_hash, hs) {
             return Some(1.0);
@@ -34,12 +34,13 @@ impl CrashGameMath {
         let precision: usize = 64 - 12;
 
         // 4 = Since each hex character represents 4 bits
-        let h = u64::from_str_radix(&hex_hash[..(precision / 4)], 16).unwrap();
-        let e = 2u64.pow(precision as u32);
-
-        let result = ((100 * e - h) / (e - h)) as f64 / 100.0; // Round to 2 decimal places
-
-        Some(result)
+        u64::from_str_radix(&hex_hash[..(precision / 4)], 16)
+            .ok()
+            .map(|h| {
+                let e = 2u64.pow(precision as u32);
+                let result = ((100 * e - h) / (e - h)) as f64 / 100.0; // Round to 2 decimal places
+                result
+            })
     }
 
     pub fn generate_seed() -> String {
@@ -55,21 +56,26 @@ impl CrashGameMath {
     fn generate_round_hex_hash(server_seed: &str, client_seed: &str, round_id: &u32) -> String {
         let mut mac = HmacSha256::new_from_slice(server_seed.as_bytes())
             .expect("HMAC can take key of any size");
-        mac.update(format!("{}{}", client_seed, round_id).as_bytes());
+        let salt = ";jIm?8WmS;KX@VZxu9yd4HdS5M";
+        mac.update(format!("{}{}{}", client_seed, round_id, salt).as_bytes());
         let result = mac.finalize();
         hex::encode(result.into_bytes())
     }
 
-    fn divisible(hash: &str, mod_val: u32) -> bool {
+    fn divisible(hash: &str, mod_val: f32) -> bool {
         // We will read in 4 hex at a time, but the first chunk might be a bit smaller
         // So ABCDEFGHIJ should be chunked like  AB CDEF GHIJ
         let mut val = 0;
         let o = hash.len() % 4;
         let start_index = if o > 0 { o - 4 } else { 0 };
         for n in (start_index..hash.len()).step_by(4) {
-            let h = u64::from_str_radix(&hash[n..n + 4], 16).unwrap() % mod_val as u64;
-            let b = val << 16; // same as val * Math.pow(2, 16)
-            val = b + h;
+            if let Ok(h) = u64::from_str_radix(&hash[n..n + 4], 16) {
+                let h = h % mod_val as u64;
+                let b = val << 16; // same as val * Math.pow(2, 16)
+                val = b + h;
+            } else {
+                return true;
+            }
         }
         val == 0
     }
