@@ -2,13 +2,7 @@ use flatbuffers::FlatBufferBuilder;
 
 use crate::{
     generated::game_schema_generated::gameplay_fbdata::{
-        root_as_game_request_event, BettingTimerStarted, BettingTimerStartedArgs,
-        BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs,
-        GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted,
-        GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs,
-        RemotePlayerBetsPlaced, RemotePlayerBetsPlacedArgs, RemotePlayerCrashOut,
-        RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft,
-        RemotePlayerLeftArgs, RequestMessages, ResponseMessage,
+        root_as_game_request_event, BetResponse, BetResponseArgs, BettingTimerStarted, BettingTimerStartedArgs, BettingTimerUpdate, BettingTimerUpdateArgs, CrashOutResponse, CrashOutResponseArgs, GameFinished, GameFinishedArgs, GameResponseEvent, GameResponseEventArgs, GameStarted, GameStartedArgs, GameUpdate, GameUpdateArgs, JoinGameResponse, JoinGameResponseArgs, RemotePlayerBetsPlaced, RemotePlayerBetsPlacedArgs, RemotePlayerCrashOut, RemotePlayerCrashOutArgs, RemotePlayerJoined, RemotePlayerJoinedArgs, RemotePlayerLeft, RemotePlayerLeftArgs, RequestMessages, ResponseMessage
     },
     services::peer::ClientData,
 };
@@ -93,6 +87,36 @@ pub fn create_join_game_response_success(
 
     // Finish the write operation by calling the generated function
     // `finish_user_buffer` with the `user_offset` created by `User::create`.
+    bldr.finish(user_offset, None);
+
+    // Copy the serialized FlatBuffers data to our own byte buffer.
+    let finished_data = bldr.finished_data();
+    bytes.extend_from_slice(finished_data);
+
+    bytes
+}
+
+pub fn create_bet_response(balance: u64) -> Vec<u8> {
+    let mut bldr = FlatBufferBuilder::new();
+    let mut bytes: Vec<u8> = Vec::new();
+
+    bytes.clear();
+    bldr.reset();
+
+    let msg = BetResponse::create(
+        &mut bldr,
+        &BetResponseArgs {
+            balance: balance,
+        },
+    )
+    .as_union_value();
+
+    let args = GameResponseEventArgs {
+        msg_type: ResponseMessage::BetResponse,
+        msg: Option::from(msg),
+    };
+
+    let user_offset = GameResponseEvent::create(&mut bldr, &args);
     bldr.finish(user_offset, None);
 
     // Copy the serialized FlatBuffers data to our own byte buffer.

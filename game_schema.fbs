@@ -68,7 +68,9 @@ table CrashOutError {
   code: uint8;
 }
 
-table BetResponse {}
+table BetResponse {
+  balance: uint64;
+}
 
 table BetError {
   code: uint8;

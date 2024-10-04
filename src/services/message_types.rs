@@ -63,6 +63,9 @@ pub enum GameEvent {
         display_name: String,
         balance: u64,
     },
+    BetResponse {
+        balance: u64,
+    },
     CrashOutResponse {
         win_amount: u64,
         multiplier: u32,
@@ -107,14 +110,14 @@ pub struct BettingTimerUpdate {
 
 #[derive(Message)]
 #[rtype(result = "()")]
+pub struct GameStarted {}
+
+#[derive(Message)]
+#[rtype(result = "()")]
 pub struct GameRoundUpdate {
     /// in milliseconds
     pub multiplier: u32,
 }
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct GameStarted {}
 
 #[derive(Message)]
 #[rtype(result = "()")]

@@ -162,7 +162,7 @@ impl Handler<BetRequest> for GameServer {
             let game_data = self.crash_game.get_game_data();
 
             if matches!(game_data.game_state, GameState::BettingInProgress) {
-                if !self.balance_system.can_sub(uuid, msg.bet_amount) {
+                if !self.balance_system.reserve_bet_amount(uuid, msg.bet_amount) {
                     // player doesn't have enough balance
                     // todo
                     warn!("bets placed! (not enough balance) {:?} {:?}", uuid, msg.bet_amount);
@@ -178,6 +178,10 @@ impl Handler<BetRequest> for GameServer {
                 }
 
                 if let Some(peer) = self.peers.get(uuid) {
+                    peer.addr.do_send(GameEvent::BetResponse {
+                        balance: self.balance_system.fetch_balance(uuid),
+                    });
+
                     self.broadcast(
                         GameEvent::RemotePlayerBetsPlaced {
                             display_name: peer.display_name.clone(),
@@ -212,7 +216,7 @@ impl Handler<CrashOutRequest> for GameServer {
 
                     if let Some(peer) = self.peers.get(uuid) {
                         // todo: handle error
-                        self.balance_system.add(uuid.clone(), win_amount);
+                        self.balance_system.add(uuid.as_str(), win_amount);
 
                         peer.addr.do_send(GameEvent::CrashOutResponse {
                             win_amount,
@@ -290,9 +294,9 @@ impl Handler<GameStarted> for GameServer {
 
     fn handle(&mut self, _: GameStarted, _: &mut Self::Context) -> Self::Result {
         // update balance system
-        for (uuid, bet_amount) in &self.bet_map {
+        for (uuid, _) in &self.bet_map {
             // todo: handle error
-            self.balance_system.sub(uuid.clone(), *bet_amount);
+            self.balance_system.commit_reserved_bet_amount(uuid.as_str());
         }
         self.broadcast(GameEvent::GameStarted {}, None);
     }
@@ -306,7 +310,7 @@ impl Handler<GameFinished> for GameServer {
         self.bet_map.clear();
 
         if !self.peers.is_empty() {
-            // self.crash_game.start_betting_timer();
+            self.crash_game.start_betting_timer();
         }
     }
 }

@@ -12,12 +12,7 @@ use crate::{
     routes::utils::auth_token_extractor::UserAuthentication,
     services::message_types::{BetRequest, CrashOutRequest, PlayerJoined},
     utils::flatbuffer_utils::{
-        create_betting_timer_started_response, create_betting_timer_update_response,
-        create_crash_out_response, create_game_finished_response, create_game_started_response,
-        create_game_update_response, create_join_game_response_success,
-        create_remote_player_bets_placed_response, create_remote_player_crash_out_response,
-        create_remote_player_joined_response, create_remote_player_left_response,
-        parse_gameplay_data,
+        create_bet_response, create_betting_timer_started_response, create_betting_timer_update_response, create_crash_out_response, create_game_finished_response, create_game_started_response, create_game_update_response, create_join_game_response_success, create_remote_player_bets_placed_response, create_remote_player_crash_out_response, create_remote_player_joined_response, create_remote_player_left_response, parse_gameplay_data
     },
 };
 
@@ -157,6 +152,10 @@ impl Handler<GameEvent> for Peer {
                 let response_data = create_game_update_response(multiplier);
                 ctx.binary(response_data);
             }
+            GameEvent::BetResponse { balance } => {
+                let response_data = create_bet_response(balance);
+                ctx.binary(response_data);
+            }
             GameEvent::CrashOutResponse {
                 win_amount,
                 multiplier,
@@ -257,7 +256,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Peer {
                         });
                     }
                     ClientData::CrashOutRequest {} => {
-                        // info!("crash out {:?}", self.session_id);
+                        info!("crash out {:?}", self.session_id);
                         self.game_server_addr.do_send(CrashOutRequest {
                             session_id: self.session_id,
                         });
