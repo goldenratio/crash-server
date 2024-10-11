@@ -65,7 +65,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::scope("/api").service(get_stats).service(auth_login))
             .service(web::scope("/ws").service(create_crash_game))
     })
-    .bind(("127.0.0.1", port))?
+    .bind(("0.0.0.0", port))?
     .workers(2)
     .run()
     .await
