@@ -12,8 +12,8 @@ Game client: https://github.com/goldenratio/crash-client-react
 
 ### Create Build
 
-- Docker image: Run `./build-docker-image.sh`
-- Run image: Run `./run-docker-image.sh`
+- Build docker image, `./build-docker-image.sh`
+- Run image, `./run-docker-image.sh`
 
 
 ### Create Build via Nix Flake
@@ -27,4 +27,6 @@ Game client: https://github.com/goldenratio/crash-client-react
 
 #### For Docker Image
 
-`nix build .#dockerImage`
+- `nix build .#dockerImage`
+- `docker load < result`
+- Run image,`./run-docker-image.sh`
